@@ -27,6 +27,13 @@ import { initFavorites, saveCurrentAsFavorite } from './modules/favorites.js';
 import { initProPlayers, openProPlayersModal } from './modules/pro-players.js';
 import { clamp, debounce, calculateRatioString, formatNumber } from './modules/utils.js';
 import { showRecapModal } from './modules/modal.js';
+import {
+  pushState as historyPushState,
+  undo as historyUndo,
+  redo as historyRedo,
+  initKeyboardShortcuts,
+  clearHistory,
+} from './modules/history.js';
 
 // App state
 const state = {
@@ -36,8 +43,159 @@ const state = {
   comparisonMode: false,
   activeZone: 'A',
   lockRatio: true,
+  lockedRatio: 16 / 9, // Captured ratio when lock is enabled (default 16:9)
+  lockedRatioB: 16 / 9, // Captured ratio for zone B
   showGrid: true,
 };
+
+// DOM element cache to avoid repeated querySelector calls
+const DOM = {
+  // Inputs
+  widthInput: null,
+  heightInput: null,
+  posXInput: null,
+  posYInput: null,
+  radiusSlider: null,
+  radiusInput: null,
+  rotationSlider: null,
+  rotationInput: null,
+  customWidth: null,
+  customHeight: null,
+  // Displays
+  ratioValue: null,
+  ratioDisplay: null,
+  areaDisplay: null,
+  tabletDimensions: null,
+  // Buttons
+  themeBtn: null,
+  lockRatioBtn: null,
+  gridBtn: null,
+  gridIcon: null,
+  fullAreaBtn: null,
+  recapBtn: null,
+  saveBtn: null,
+  proPlayersBtn: null,
+  comparisonToggle: null,
+  zoneABtn: null,
+  zoneBBtn: null,
+  // Containers
+  visualizer: null,
+  tabletSelector: null,
+  favorites: null,
+  customDimensions: null,
+  zoneSelector: null,
+  // Language
+  langToggle: null,
+  langMenu: null,
+  langDropdown: null,
+  currentLang: null,
+};
+
+/**
+ * Cache DOM element references
+ */
+function cacheDOMElements() {
+  // Inputs
+  DOM.widthInput = document.querySelector('#area-width');
+  DOM.heightInput = document.querySelector('#area-height');
+  DOM.posXInput = document.querySelector('#area-pos-x');
+  DOM.posYInput = document.querySelector('#area-pos-y');
+  DOM.radiusSlider = document.querySelector('#area-radius');
+  DOM.radiusInput = document.querySelector('#radius-value');
+  DOM.rotationSlider = document.querySelector('#area-rotation');
+  DOM.rotationInput = document.querySelector('#rotation-value');
+  DOM.customWidth = document.querySelector('#custom-width');
+  DOM.customHeight = document.querySelector('#custom-height');
+  // Displays
+  DOM.ratioValue = document.querySelector('#ratio-value');
+  DOM.ratioDisplay = document.querySelector('#ratio-display');
+  DOM.areaDisplay = document.querySelector('#area-display');
+  DOM.tabletDimensions = document.querySelector('#tablet-dimensions');
+  // Buttons
+  DOM.themeBtn = document.querySelector('#theme-toggle');
+  DOM.lockRatioBtn = document.querySelector('#lock-ratio');
+  DOM.gridBtn = document.querySelector('#toggle-grid');
+  DOM.gridIcon = document.querySelector('#grid-icon');
+  DOM.fullAreaBtn = document.querySelector('#full-area');
+  DOM.fullAreaIcon = document.querySelector('#fullarea-icon');
+  DOM.recapBtn = document.querySelector('#show-recap');
+  DOM.recapIcon = document.querySelector('#recap-icon');
+  DOM.saveBtn = document.querySelector('#save-favorite');
+  DOM.saveIcon = document.querySelector('#save-icon');
+  DOM.proPlayersBtn = document.querySelector('#pro-players-btn');
+  DOM.proPlayersIcon = document.querySelector('#pro-players-icon');
+  DOM.comparisonToggle = document.querySelector('#toggle-comparison');
+  DOM.comparisonIcon = document.querySelector('#comparison-icon');
+  DOM.zoneABtn = document.querySelector('#zone-a-btn');
+  DOM.zoneBBtn = document.querySelector('#zone-b-btn');
+  // Containers
+  DOM.visualizer = document.querySelector('#visualizer');
+  DOM.tabletSelector = document.querySelector('#tablet-selector');
+  DOM.favorites = document.querySelector('#favorites');
+  DOM.customDimensions = document.querySelector('#custom-dimensions');
+  DOM.zoneSelector = document.querySelector('#zone-selector');
+  // Language
+  DOM.langToggle = document.querySelector('#lang-toggle');
+  DOM.langMenu = document.querySelector('#lang-menu');
+  DOM.langDropdown = document.querySelector('#lang-dropdown');
+  DOM.currentLang = document.querySelector('#current-lang');
+}
+
+/**
+ * Push current area state to history (for undo/redo)
+ */
+function pushAreaToHistory() {
+  const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
+  historyPushState(activeArea);
+}
+
+/**
+ * Handle undo action
+ */
+function handleUndo() {
+  const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
+  const previousState = historyUndo(activeArea);
+  
+  if (previousState) {
+    Object.assign(activeArea, previousState);
+    
+    if (state.activeZone === 'A') {
+      setArea(state.area);
+    } else {
+      setAreaB(state.areaB);
+    }
+    
+    setAreaRadius(activeArea.radius || 0);
+    setAreaRotation(activeArea.rotation || 0);
+    updateInputs();
+    updateRatioDisplay();
+    saveState();
+  }
+}
+
+/**
+ * Handle redo action
+ */
+function handleRedo() {
+  const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
+  const nextState = historyRedo(activeArea);
+  
+  if (nextState) {
+    Object.assign(activeArea, nextState);
+    
+    if (state.activeZone === 'A') {
+      setArea(state.area);
+    } else {
+      setAreaB(state.areaB);
+    }
+    
+    setAreaRadius(activeArea.radius || 0);
+    setAreaRotation(activeArea.rotation || 0);
+    updateInputs();
+    updateRatioDisplay();
+    saveState();
+  }
+}
 
 /**
  * Initialize theme
@@ -52,10 +210,9 @@ function initTheme() {
  * Update theme icon
  */
 function updateThemeIcon() {
-  const themeBtn = document.querySelector('#theme-toggle');
-  if (themeBtn) {
+  if (DOM.themeBtn) {
     const theme = getTheme();
-    themeBtn.innerHTML = icon(theme === 'dark' ? 'moon' : 'sun');
+    DOM.themeBtn.innerHTML = icon(theme === 'dark' ? 'moon' : 'sun');
   }
 }
 
@@ -85,13 +242,10 @@ async function selectLanguage(locale) {
  * Toggle language menu visibility
  */
 function toggleLangMenu() {
-  const langMenu = document.querySelector('#lang-menu');
-  const langToggle = document.querySelector('#lang-toggle');
-
-  if (langMenu && langToggle) {
-    const isHidden = langMenu.classList.contains('hidden');
-    langMenu.classList.toggle('hidden');
-    langToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+  if (DOM.langMenu && DOM.langToggle) {
+    const isHidden = DOM.langMenu.classList.contains('hidden');
+    DOM.langMenu.classList.toggle('hidden');
+    DOM.langToggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
   }
 }
 
@@ -99,12 +253,9 @@ function toggleLangMenu() {
  * Hide language menu
  */
 function hideLangMenu() {
-  const langMenu = document.querySelector('#lang-menu');
-  const langToggle = document.querySelector('#lang-toggle');
-
-  if (langMenu && langToggle) {
-    langMenu.classList.add('hidden');
-    langToggle.setAttribute('aria-expanded', 'false');
+  if (DOM.langMenu && DOM.langToggle) {
+    DOM.langMenu.classList.add('hidden');
+    DOM.langToggle.setAttribute('aria-expanded', 'false');
   }
 }
 
@@ -123,9 +274,8 @@ function updateLangMenuActive() {
  * Update language display
  */
 function updateLangDisplay() {
-  const langToggle = document.querySelector('#current-lang');
-  if (langToggle) {
-    langToggle.textContent = getLocale().toUpperCase();
+  if (DOM.currentLang) {
+    DOM.currentLang.textContent = getLocale().toUpperCase();
   }
 }
 
@@ -133,28 +283,25 @@ function updateLangDisplay() {
  * Update area dimensions from inputs
  */
 function updateAreaFromInputs(forceUpdate = false) {
-  const widthInput = document.querySelector('#area-width');
-  const heightInput = document.querySelector('#area-height');
-
-  if (!widthInput || !heightInput || !state.tablet) return;
+  if (!DOM.widthInput || !DOM.heightInput || !state.tablet) return;
 
   // Don't update if input is empty (user is typing)
-  if (!forceUpdate && (widthInput.value === '' || heightInput.value === '')) {
+  if (!forceUpdate && (DOM.widthInput.value === '' || DOM.heightInput.value === '')) {
     return;
   }
 
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
 
-  let width = parseFloat(widthInput.value) || activeArea.width;
-  let height = parseFloat(heightInput.value) || activeArea.height;
+  let width = parseFloat(DOM.widthInput.value) || activeArea.width;
+  let height = parseFloat(DOM.heightInput.value) || activeArea.height;
 
   // Clamp to tablet bounds
   width = clamp(width, 1, state.tablet.width);
   height = clamp(height, 1, state.tablet.height);
 
-  // Keep aspect ratio if locked (16:9)
+  // Keep aspect ratio if locked
   if (state.lockRatio) {
-    const targetRatio = 16 / 9;
+    const targetRatio = state.activeZone === 'A' ? state.lockedRatio : state.lockedRatioB;
     const { height: tabletHeight } = state.tablet;
     height = width / targetRatio;
     if (height > tabletHeight) {
@@ -170,8 +317,9 @@ function updateAreaFromInputs(forceUpdate = false) {
 
   // Only update input values on forceUpdate (blur/change event)
   if (forceUpdate) {
-    widthInput.value = formatNumber(activeArea.width, 1);
-    heightInput.value = formatNumber(activeArea.height, 1);
+    DOM.widthInput.value = formatNumber(activeArea.width, 1);
+    DOM.heightInput.value = formatNumber(activeArea.height, 1);
+    pushAreaToHistory();
   }
 
   if (state.activeZone === 'A') {
@@ -189,20 +337,17 @@ function updateAreaFromInputs(forceUpdate = false) {
  * Update area position from inputs
  */
 function updatePositionFromInputs(forceUpdate = false) {
-  const posXInput = document.querySelector('#area-pos-x');
-  const posYInput = document.querySelector('#area-pos-y');
-
-  if (!posXInput || !posYInput || !state.tablet) return;
+  if (!DOM.posXInput || !DOM.posYInput || !state.tablet) return;
 
   // Don't update if input is empty (user is typing)
-  if (!forceUpdate && (posXInput.value === '' || posYInput.value === '')) {
+  if (!forceUpdate && (DOM.posXInput.value === '' || DOM.posYInput.value === '')) {
     return;
   }
 
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
 
-  const x = parseFloat(posXInput.value) || activeArea.x;
-  const y = parseFloat(posYInput.value) || activeArea.y;
+  const x = parseFloat(DOM.posXInput.value) || activeArea.x;
+  const y = parseFloat(DOM.posYInput.value) || activeArea.y;
 
   activeArea.x = x;
   activeArea.y = y;
@@ -211,8 +356,9 @@ function updatePositionFromInputs(forceUpdate = false) {
 
   // Only update input values on forceUpdate (blur/change event)
   if (forceUpdate) {
-    posXInput.value = formatNumber(activeArea.x, 1);
-    posYInput.value = formatNumber(activeArea.y, 1);
+    DOM.posXInput.value = formatNumber(activeArea.x, 1);
+    DOM.posYInput.value = formatNumber(activeArea.y, 1);
+    pushAreaToHistory();
   }
 
   if (state.activeZone === 'A') {
@@ -244,12 +390,9 @@ function snapToPoint(value, snapPoints, threshold = 5) {
  * Update radius from slider
  */
 function updateRadiusFromSlider() {
-  const radiusSlider = document.querySelector('#area-radius');
-  const radiusInput = document.querySelector('#radius-value');
+  if (!DOM.radiusSlider) return;
 
-  if (!radiusSlider) return;
-
-  let radius = parseInt(radiusSlider.value, 10) || 0;
+  let radius = parseInt(DOM.radiusSlider.value, 10) || 0;
 
   // Snap to key points: 0%, 50%, 100%
   radius = snapToPoint(radius, [0, 50, 100], 2);
@@ -258,10 +401,10 @@ function updateRadiusFromSlider() {
   activeArea.radius = radius;
 
   // Update slider position if snapped
-  radiusSlider.value = radius;
+  DOM.radiusSlider.value = radius;
 
-  if (radiusInput) {
-    radiusInput.value = radius;
+  if (DOM.radiusInput) {
+    DOM.radiusInput.value = radius;
   }
 
   setAreaRadius(radius);
@@ -272,21 +415,18 @@ function updateRadiusFromSlider() {
  * Update radius from manual input (no snapping)
  */
 function updateRadiusFromInput() {
-  const radiusSlider = document.querySelector('#area-radius');
-  const radiusInput = document.querySelector('#radius-value');
+  if (!DOM.radiusInput) return;
 
-  if (!radiusInput) return;
-
-  let radius = parseInt(radiusInput.value, 10) || 0;
+  let radius = parseInt(DOM.radiusInput.value, 10) || 0;
   radius = clamp(radius, 0, 100);
 
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
   activeArea.radius = radius;
 
-  if (radiusSlider) {
-    radiusSlider.value = radius;
+  if (DOM.radiusSlider) {
+    DOM.radiusSlider.value = radius;
   }
-  radiusInput.value = radius;
+  DOM.radiusInput.value = radius;
 
   setAreaRadius(radius);
   debouncedSaveState();
@@ -296,12 +436,9 @@ function updateRadiusFromInput() {
  * Update rotation from slider
  */
 function updateRotationFromSlider() {
-  const rotationSlider = document.querySelector('#area-rotation');
-  const rotationInput = document.querySelector('#rotation-value');
+  if (!DOM.rotationSlider) return;
 
-  if (!rotationSlider) return;
-
-  let rotation = parseInt(rotationSlider.value, 10) || 0;
+  let rotation = parseInt(DOM.rotationSlider.value, 10) || 0;
 
   // Snap to key angles: -180°, -90°, 0°, 90°, 180°
   rotation = snapToPoint(rotation, [-180, -90, 0, 90, 180], 2);
@@ -310,10 +447,10 @@ function updateRotationFromSlider() {
   activeArea.rotation = rotation;
 
   // Update slider position if snapped
-  rotationSlider.value = rotation;
+  DOM.rotationSlider.value = rotation;
 
-  if (rotationInput) {
-    rotationInput.value = rotation;
+  if (DOM.rotationInput) {
+    DOM.rotationInput.value = rotation;
   }
 
   setAreaRotation(rotation);
@@ -324,21 +461,18 @@ function updateRotationFromSlider() {
  * Update rotation from manual input (no snapping)
  */
 function updateRotationFromInput() {
-  const rotationSlider = document.querySelector('#area-rotation');
-  const rotationInput = document.querySelector('#rotation-value');
+  if (!DOM.rotationInput) return;
 
-  if (!rotationInput) return;
-
-  let rotation = parseInt(rotationInput.value, 10) || 0;
+  let rotation = parseInt(DOM.rotationInput.value, 10) || 0;
   rotation = clamp(rotation, -180, 180);
 
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
   activeArea.rotation = rotation;
 
-  if (rotationSlider) {
-    rotationSlider.value = rotation;
+  if (DOM.rotationSlider) {
+    DOM.rotationSlider.value = rotation;
   }
-  rotationInput.value = rotation;
+  DOM.rotationInput.value = rotation;
 
   setAreaRotation(rotation);
   debouncedSaveState();
@@ -377,6 +511,7 @@ function centerArea() {
   }
 
   updatePositionInputs();
+  pushAreaToHistory();
   saveState();
 }
 
@@ -389,7 +524,7 @@ function setFullArea() {
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
 
   if (state.lockRatio) {
-    const targetRatio = 16 / 9;
+    const targetRatio = state.activeZone === 'A' ? state.lockedRatio : state.lockedRatioB;
     const tabletRatio = state.tablet.width / state.tablet.height;
 
     if (tabletRatio > targetRatio) {
@@ -415,6 +550,7 @@ function setFullArea() {
 
   updateInputs();
   updateRatioDisplay();
+  pushAreaToHistory();
   saveState();
 }
 
@@ -423,17 +559,14 @@ function setFullArea() {
  */
 function updateRatioDisplay() {
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  const ratioValue = document.querySelector('#ratio-value');
-  const ratioDisplay = document.querySelector('#ratio-display');
   const ratio = calculateRatioString(activeArea.width, activeArea.height);
 
-  if (ratioValue) ratioValue.textContent = ratio;
-  if (ratioDisplay) ratioDisplay.textContent = ratio;
+  if (DOM.ratioValue) DOM.ratioValue.textContent = ratio;
+  if (DOM.ratioDisplay) DOM.ratioDisplay.textContent = ratio;
 
   // Update area display in visualizer
-  const areaDisplay = document.querySelector('#area-display');
-  if (areaDisplay) {
-    areaDisplay.textContent = `${formatNumber(
+  if (DOM.areaDisplay) {
+    DOM.areaDisplay.textContent = `${formatNumber(
       activeArea.width,
       1
     )} × ${formatNumber(activeArea.height, 1)}`;
@@ -444,9 +577,8 @@ function updateRatioDisplay() {
  * Update tablet info display
  */
 function updateTabletInfo() {
-  const tabletDimensions = document.querySelector('#tablet-dimensions');
-  if (tabletDimensions && state.tablet) {
-    tabletDimensions.textContent = `${formatNumber(
+  if (DOM.tabletDimensions && state.tablet) {
+    DOM.tabletDimensions.textContent = `${formatNumber(
       state.tablet.width,
       1
     )} × ${formatNumber(state.tablet.height, 1)} mm`;
@@ -492,12 +624,15 @@ function saveState() {
     comparisonMode: state.comparisonMode,
     activeZone: state.activeZone,
     lockRatio: state.lockRatio,
+    lockedRatio: state.lockedRatio,
+    lockedRatioB: state.lockedRatioB,
     showGrid: state.showGrid,
   };
   savePrefs(prefs);
 }
 
 const debouncedSaveState = debounce(saveState, 300);
+const debouncedPushHistory = debounce(pushAreaToHistory, 500);
 
 /**
  * Load state from localStorage
@@ -511,6 +646,8 @@ function loadState() {
     if (typeof prefs.comparisonMode === 'boolean') state.comparisonMode = prefs.comparisonMode;
     if (prefs.activeZone) state.activeZone = prefs.activeZone;
     if (typeof prefs.lockRatio === 'boolean') state.lockRatio = prefs.lockRatio;
+    if (typeof prefs.lockedRatio === 'number') state.lockedRatio = prefs.lockedRatio;
+    if (typeof prefs.lockedRatioB === 'number') state.lockedRatioB = prefs.lockedRatioB;
     if (typeof prefs.showGrid === 'boolean') state.showGrid = prefs.showGrid;
   }
 }
@@ -524,18 +661,15 @@ function onTabletSelected(tablet) {
 
   updateTabletInfo();
 
-  const customDimensions = document.querySelector('#custom-dimensions');
   if (tablet.isCustom) {
-    const customWidth = document.querySelector('#custom-width');
-    const customHeight = document.querySelector('#custom-height');
-    if (customWidth) customWidth.value = tablet.width;
-    if (customHeight) customHeight.value = tablet.height;
-    customDimensions?.classList.remove('hidden');
+    if (DOM.customWidth) DOM.customWidth.value = tablet.width;
+    if (DOM.customHeight) DOM.customHeight.value = tablet.height;
+    DOM.customDimensions?.classList.remove('hidden');
 
     // Reset preset buttons active state
     document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
   } else {
-    customDimensions?.classList.add('hidden');
+    DOM.customDimensions?.classList.add('hidden');
   }
 
   if (state.area.width > tablet.width) state.area.width = tablet.width;
@@ -556,11 +690,9 @@ function onTabletSelected(tablet) {
  */
 function updateInputs() {
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  const widthInput = document.querySelector('#area-width');
-  const heightInput = document.querySelector('#area-height');
 
-  if (widthInput) widthInput.value = formatNumber(activeArea.width, 1);
-  if (heightInput) heightInput.value = formatNumber(activeArea.height, 1);
+  if (DOM.widthInput) DOM.widthInput.value = formatNumber(activeArea.width, 1);
+  if (DOM.heightInput) DOM.heightInput.value = formatNumber(activeArea.height, 1);
 
   updatePositionInputs();
   updateRadiusSlider();
@@ -573,11 +705,9 @@ function updateInputs() {
  */
 function updatePositionInputs() {
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  const posXInput = document.querySelector('#area-pos-x');
-  const posYInput = document.querySelector('#area-pos-y');
 
-  if (posXInput) posXInput.value = formatNumber(activeArea.x, 1);
-  if (posYInput) posYInput.value = formatNumber(activeArea.y, 1);
+  if (DOM.posXInput) DOM.posXInput.value = formatNumber(activeArea.x, 1);
+  if (DOM.posYInput) DOM.posYInput.value = formatNumber(activeArea.y, 1);
 }
 
 /**
@@ -585,12 +715,9 @@ function updatePositionInputs() {
  */
 function updateRadiusSlider() {
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  const radiusSlider = document.querySelector('#area-radius');
-  const radiusInput = document.querySelector('#radius-value');
-
   const radius = activeArea.radius || 0;
-  if (radiusSlider) radiusSlider.value = radius;
-  if (radiusInput) radiusInput.value = radius;
+  if (DOM.radiusSlider) DOM.radiusSlider.value = radius;
+  if (DOM.radiusInput) DOM.radiusInput.value = radius;
 }
 
 /**
@@ -598,12 +725,9 @@ function updateRadiusSlider() {
  */
 function updateRotationSlider() {
   const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  const rotationSlider = document.querySelector('#area-rotation');
-  const rotationInput = document.querySelector('#rotation-value');
-
   const rotation = activeArea.rotation || 0;
-  if (rotationSlider) rotationSlider.value = rotation;
-  if (rotationInput) rotationInput.value = rotation;
+  if (DOM.rotationSlider) DOM.rotationSlider.value = rotation;
+  if (DOM.rotationInput) DOM.rotationInput.value = rotation;
 }
 
 /**
@@ -628,6 +752,7 @@ function onFavoriteSelected(favorite) {
 
   updateTabletInfo();
   updateInputs();
+  pushAreaToHistory();
   saveState();
 }
 
@@ -660,6 +785,7 @@ function onProPlayerSelected(player) {
 
   updateTabletInfo();
   updateInputs();
+  pushAreaToHistory();
   saveState();
 }
 
@@ -670,11 +796,8 @@ function toggleComparisonMode() {
   state.comparisonMode = !state.comparisonMode;
   setComparisonMode(state.comparisonMode);
 
-  const toggleBtn = document.querySelector('#toggle-comparison');
-  const zoneSelector = document.querySelector('#zone-selector');
-
-  toggleBtn?.classList.toggle('active', state.comparisonMode);
-  zoneSelector?.classList.toggle('hidden', !state.comparisonMode);
+  DOM.comparisonToggle?.classList.toggle('active', state.comparisonMode);
+  DOM.zoneSelector?.classList.toggle('hidden', !state.comparisonMode);
 
   // If turning on comparison, initialize areaB from areaA
   if (state.comparisonMode && !state.areaB.width) {
@@ -695,11 +818,8 @@ function switchActiveZone(zone) {
   setActiveZone(zone);
 
   // Update UI
-  const zoneABtn = document.querySelector('#zone-a-btn');
-  const zoneBBtn = document.querySelector('#zone-b-btn');
-
-  zoneABtn?.classList.toggle('active', zone === 'A');
-  zoneBBtn?.classList.toggle('active', zone === 'B');
+  DOM.zoneABtn?.classList.toggle('active', zone === 'A');
+  DOM.zoneBBtn?.classList.toggle('active', zone === 'B');
 
   // Update all inputs for the new active zone
   updateInputs();
@@ -710,6 +830,9 @@ function switchActiveZone(zone) {
  * Initialize app
  */
 async function init() {
+  // Cache DOM elements first
+  cacheDOMElements();
+
   loadState();
 
   await initI18n();
@@ -720,9 +843,8 @@ async function init() {
   translatePage();
 
   // Initialize visualizer
-  const visualizerContainer = document.querySelector('#visualizer');
-  if (visualizerContainer) {
-    initVisualizer(visualizerContainer);
+  if (DOM.visualizer) {
+    initVisualizer(DOM.visualizer);
 
     if (state.tablet) {
       setTablet(state.tablet.width, state.tablet.height);
@@ -739,9 +861,8 @@ async function init() {
   }
 
   // Initialize tablet selector
-  const tabletSelectorContainer = document.querySelector('#tablet-selector');
-  if (tabletSelectorContainer) {
-    await initTabletSelector(tabletSelectorContainer, onTabletSelected);
+  if (DOM.tabletSelector) {
+    await initTabletSelector(DOM.tabletSelector, onTabletSelected);
 
     if (state.tablet) {
       setCurrentTablet(state.tablet);
@@ -750,29 +871,31 @@ async function init() {
   }
 
   // Initialize favorites
-  const favoritesContainer = document.querySelector('#favorites');
-  if (favoritesContainer) {
-    initFavorites(favoritesContainer, onFavoriteSelected);
+  if (DOM.favorites) {
+    initFavorites(DOM.favorites, onFavoriteSelected);
   }
 
   // Initialize pro players
   await initProPlayers(onProPlayerSelected);
 
+  // Initialize keyboard shortcuts for undo/redo
+  initKeyboardShortcuts(handleUndo, handleRedo);
+
   setupControls();
 
   updateInputs();
 
+  // Push initial state to history
+  if (state.tablet) {
+    pushAreaToHistory();
+  }
+
   // Initialize comparison mode UI state
   if (state.comparisonMode) {
-    const toggleBtn = document.querySelector('#toggle-comparison');
-    const zoneSelector = document.querySelector('#zone-selector');
-    toggleBtn?.classList.add('active');
-    zoneSelector?.classList.remove('hidden');
-
-    const zoneABtn = document.querySelector('#zone-a-btn');
-    const zoneBBtn = document.querySelector('#zone-b-btn');
-    zoneABtn?.classList.toggle('active', state.activeZone === 'A');
-    zoneBBtn?.classList.toggle('active', state.activeZone === 'B');
+    DOM.comparisonToggle?.classList.add('active');
+    DOM.zoneSelector?.classList.remove('hidden');
+    DOM.zoneABtn?.classList.toggle('active', state.activeZone === 'A');
+    DOM.zoneBBtn?.classList.toggle('active', state.activeZone === 'B');
   }
 }
 
@@ -781,18 +904,13 @@ async function init() {
  */
 function setupControls() {
   // Theme toggle
-  const themeBtn = document.querySelector('#theme-toggle');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', toggleTheme);
+  if (DOM.themeBtn) {
+    DOM.themeBtn.addEventListener('click', toggleTheme);
   }
 
   // Language dropdown
-  const langToggle = document.querySelector('#lang-toggle');
-  const langMenu = document.querySelector('#lang-menu');
-  const langDropdown = document.querySelector('#lang-dropdown');
-
-  if (langToggle && langMenu) {
-    langToggle.addEventListener('click', e => {
+  if (DOM.langToggle && DOM.langMenu) {
+    DOM.langToggle.addEventListener('click', e => {
       e.stopPropagation();
       toggleLangMenu();
     });
@@ -806,7 +924,7 @@ function setupControls() {
 
     // Close on click outside
     document.addEventListener('click', e => {
-      if (langDropdown && !langDropdown.contains(e.target)) {
+      if (DOM.langDropdown && !DOM.langDropdown.contains(e.target)) {
         hideLangMenu();
       }
     });
@@ -823,60 +941,56 @@ function setupControls() {
   }
 
   // Area dimension inputs
-  const widthInput = document.querySelector('#area-width');
-  const heightInput = document.querySelector('#area-height');
-
-  widthInput?.addEventListener(
+  DOM.widthInput?.addEventListener(
     'input',
     debounce(() => updateAreaFromInputs(false), 200)
   );
-  heightInput?.addEventListener(
+  DOM.heightInput?.addEventListener(
     'input',
     debounce(() => updateAreaFromInputs(false), 200)
   );
-  widthInput?.addEventListener('change', () => updateAreaFromInputs(true));
-  heightInput?.addEventListener('change', () => updateAreaFromInputs(true));
+  DOM.widthInput?.addEventListener('change', () => updateAreaFromInputs(true));
+  DOM.heightInput?.addEventListener('change', () => updateAreaFromInputs(true));
 
   // Position inputs
-  const posXInput = document.querySelector('#area-pos-x');
-  const posYInput = document.querySelector('#area-pos-y');
-
-  posXInput?.addEventListener(
+  DOM.posXInput?.addEventListener(
     'input',
     debounce(() => updatePositionFromInputs(false), 200)
   );
-  posYInput?.addEventListener(
+  DOM.posYInput?.addEventListener(
     'input',
     debounce(() => updatePositionFromInputs(false), 200)
   );
-  posXInput?.addEventListener('change', () => updatePositionFromInputs(true));
-  posYInput?.addEventListener('change', () => updatePositionFromInputs(true));
+  DOM.posXInput?.addEventListener('change', () => updatePositionFromInputs(true));
+  DOM.posYInput?.addEventListener('change', () => updatePositionFromInputs(true));
 
   // Radius slider and manual input
-  const radiusSlider = document.querySelector('#area-radius');
-  const radiusInput = document.querySelector('#radius-value');
-  radiusSlider?.addEventListener('input', updateRadiusFromSlider);
-  radiusInput?.addEventListener('change', updateRadiusFromInput);
+  DOM.radiusSlider?.addEventListener('input', updateRadiusFromSlider);
+  DOM.radiusInput?.addEventListener('change', updateRadiusFromInput);
 
   // Rotation slider and manual input
-  const rotationSlider = document.querySelector('#area-rotation');
-  const rotationInput = document.querySelector('#rotation-value');
-  rotationSlider?.addEventListener('input', updateRotationFromSlider);
-  rotationInput?.addEventListener('change', updateRotationFromInput);
+  DOM.rotationSlider?.addEventListener('input', updateRotationFromSlider);
+  DOM.rotationInput?.addEventListener('change', updateRotationFromInput);
 
   // Lock ratio toggle
-  const lockRatioBtn = document.querySelector('#lock-ratio');
-  if (lockRatioBtn) {
-    lockRatioBtn.classList.toggle('active', state.lockRatio);
-    lockRatioBtn.innerHTML = icon(state.lockRatio ? 'lock' : 'unlock');
+  if (DOM.lockRatioBtn) {
+    DOM.lockRatioBtn.classList.toggle('active', state.lockRatio);
+    DOM.lockRatioBtn.innerHTML = icon(state.lockRatio ? 'lock' : 'unlock');
 
-    lockRatioBtn.addEventListener('click', () => {
+    DOM.lockRatioBtn.addEventListener('click', () => {
       state.lockRatio = !state.lockRatio;
-      lockRatioBtn.classList.toggle('active', state.lockRatio);
-      lockRatioBtn.innerHTML = icon(state.lockRatio ? 'lock' : 'unlock');
+      DOM.lockRatioBtn.classList.toggle('active', state.lockRatio);
+      DOM.lockRatioBtn.innerHTML = icon(state.lockRatio ? 'lock' : 'unlock');
 
       if (state.lockRatio) {
-        updateAreaFromInputs();
+        // Capture the current ratio when lock is enabled
+        const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
+        const currentRatio = activeArea.width / activeArea.height;
+        if (state.activeZone === 'A') {
+          state.lockedRatio = currentRatio;
+        } else {
+          state.lockedRatioB = currentRatio;
+        }
       }
 
       saveState();
@@ -884,43 +998,35 @@ function setupControls() {
   }
 
   // Grid toggle (toolbar)
-  const gridBtn = document.querySelector('#toggle-grid');
-  const gridIcon = document.querySelector('#grid-icon');
-  if (gridBtn && gridIcon) {
-    gridBtn.classList.toggle('active', state.showGrid);
-    gridIcon.innerHTML = icon('grid');
+  if (DOM.gridBtn && DOM.gridIcon) {
+    DOM.gridBtn.classList.toggle('active', state.showGrid);
+    DOM.gridIcon.innerHTML = icon('grid');
 
-    gridBtn.addEventListener('click', () => {
+    DOM.gridBtn.addEventListener('click', () => {
       state.showGrid = !state.showGrid;
-      gridBtn.classList.toggle('active', state.showGrid);
+      DOM.gridBtn.classList.toggle('active', state.showGrid);
       setGridVisible(state.showGrid);
       saveState();
     });
   }
 
   // Full area button (toolbar)
-  const fullAreaBtn = document.querySelector('#full-area');
-  const fullAreaIcon = document.querySelector('#fullarea-icon');
-  if (fullAreaBtn && fullAreaIcon) {
-    fullAreaIcon.innerHTML = icon('crop');
-    fullAreaBtn.addEventListener('click', setFullArea);
+  if (DOM.fullAreaBtn && DOM.fullAreaIcon) {
+    DOM.fullAreaIcon.innerHTML = icon('crop');
+    DOM.fullAreaBtn.addEventListener('click', setFullArea);
   }
 
   // Recap button (toolbar)
-  const recapBtn = document.querySelector('#show-recap');
-  const recapIcon = document.querySelector('#recap-icon');
-  if (recapBtn && recapIcon) {
-    recapIcon.innerHTML = icon('info');
-    recapBtn.addEventListener('click', showRecap);
+  if (DOM.recapBtn && DOM.recapIcon) {
+    DOM.recapIcon.innerHTML = icon('info');
+    DOM.recapBtn.addEventListener('click', showRecap);
   }
 
   // Save favorite button
-  const saveBtn = document.querySelector('#save-favorite');
-  const saveIcon = document.querySelector('#save-icon');
-  if (saveIcon) {
-    saveIcon.innerHTML = icon('heart');
+  if (DOM.saveIcon) {
+    DOM.saveIcon.innerHTML = icon('heart');
   }
-  saveBtn?.addEventListener('click', () => {
+  DOM.saveBtn?.addEventListener('click', () => {
     if (state.tablet) {
       const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
       saveCurrentAsFavorite(state.tablet, activeArea);
@@ -928,35 +1034,26 @@ function setupControls() {
   });
 
   // Pro Players button
-  const proPlayersBtn = document.querySelector('#pro-players-btn');
-  const proPlayersIcon = document.querySelector('#pro-players-icon');
-  if (proPlayersIcon) {
-    proPlayersIcon.innerHTML = icon('users');
+  if (DOM.proPlayersIcon) {
+    DOM.proPlayersIcon.innerHTML = icon('users');
   }
-  proPlayersBtn?.addEventListener('click', openProPlayersModal);
+  DOM.proPlayersBtn?.addEventListener('click', openProPlayersModal);
 
   // Comparison mode toggle
-  const comparisonToggle = document.querySelector('#toggle-comparison');
-  const comparisonIcon = document.querySelector('#comparison-icon');
-  if (comparisonIcon) {
-    comparisonIcon.innerHTML = icon('layers');
+  if (DOM.comparisonIcon) {
+    DOM.comparisonIcon.innerHTML = icon('layers');
   }
-  comparisonToggle?.addEventListener('click', toggleComparisonMode);
+  DOM.comparisonToggle?.addEventListener('click', toggleComparisonMode);
 
   // Zone selector buttons
-  const zoneABtn = document.querySelector('#zone-a-btn');
-  const zoneBBtn = document.querySelector('#zone-b-btn');
-  zoneABtn?.addEventListener('click', () => switchActiveZone('A'));
-  zoneBBtn?.addEventListener('click', () => switchActiveZone('B'));
+  DOM.zoneABtn?.addEventListener('click', () => switchActiveZone('A'));
+  DOM.zoneBBtn?.addEventListener('click', () => switchActiveZone('B'));
 
   // Custom dimensions inputs
-  const customWidth = document.querySelector('#custom-width');
-  const customHeight = document.querySelector('#custom-height');
-
   const updateCustomDimensions = () => {
     if (state.tablet?.isCustom) {
-      const w = parseFloat(customWidth?.value) || 152;
-      const h = parseFloat(customHeight?.value) || 95;
+      const w = parseFloat(DOM.customWidth?.value) || 152;
+      const h = parseFloat(DOM.customHeight?.value) || 95;
       state.tablet.width = w;
       state.tablet.height = h;
       setTablet(w, h);
@@ -967,8 +1064,8 @@ function setupControls() {
     }
   };
 
-  customWidth?.addEventListener('change', updateCustomDimensions);
-  customHeight?.addEventListener('change', updateCustomDimensions);
+  DOM.customWidth?.addEventListener('change', updateCustomDimensions);
+  DOM.customHeight?.addEventListener('change', updateCustomDimensions);
 
   // Ratio preset buttons
   document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -1005,6 +1102,7 @@ function setupControls() {
 
       updateInputs();
       updateRatioDisplay();
+      pushAreaToHistory();
       saveState();
     });
   });
@@ -1018,6 +1116,7 @@ function setupControls() {
       state.areaB = { ...state.areaB, ...e.detail };
     }
     updateInputs();
+    debouncedPushHistory();
     debouncedSaveState();
   });
 }

@@ -45,7 +45,8 @@ export function pushState(area) {
       lastEntry.area.y === area.y &&
       lastEntry.area.width === area.width &&
       lastEntry.area.height === area.height &&
-      lastEntry.area.radius === area.radius
+      lastEntry.area.radius === area.radius &&
+      lastEntry.area.rotation === area.rotation
     ) {
       return;
     }
