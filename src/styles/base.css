@@ -190,3 +190,31 @@ a:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* === TOUCH DEVICES === */
+@media (hover: none) and (pointer: coarse) {
+  /* Improve tap targets for touch */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  /* Remove hover states on touch - use active instead */
+  button:active,
+  a:active {
+    opacity: 0.8;
+  }
+
+  /* Prevent zoom on double-tap for buttons */
+  button {
+    touch-action: manipulation;
+  }
+
+  /* Smoother scrolling on touch */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
