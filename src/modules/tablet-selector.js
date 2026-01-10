@@ -5,6 +5,7 @@
 
 import { icon } from './icons.js';
 import { t } from './i18n.js';
+import { DEFAULT_TABLET } from '../constants/index.js';
 
 let tablets = [];
 let selectedBrand = null;
@@ -261,8 +262,8 @@ function enableCustomMode() {
   selectTablet({
     brand: 'Custom',
     model: 'Custom',
-    width: 152,
-    height: 95,
+    width: DEFAULT_TABLET.width,
+    height: DEFAULT_TABLET.height,
     isCustom: true,
   });
 }

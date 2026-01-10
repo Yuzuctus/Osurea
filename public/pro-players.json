@@ -16,6 +16,40 @@
         "radius": 0,
         "rotation": 0
       }
+    },
+    {
+      "name": "Lifeline",
+      "tablet": {
+        "brand": "Wacom",
+        "model": "CTL-472",
+        "width": 152,
+        "height": 95
+      },
+      "area": {
+        "width": 53.0,
+        "height": 42.3,
+        "x": 76.0,
+        "y": 47.5,
+        "radius": 0,
+        "rotation": 0
+      }
+    },
+    {
+      "name": "BTMC ",
+      "tablet": {
+        "brand": "Wacom",
+        "model": "CTL-472",
+        "width": 152,
+        "height": 95
+      },
+      "area": {
+        "width": 102.4,
+        "height": 64.0,
+        "x": 100.8,
+        "y": 49.35,
+        "radius": 0,
+        "rotation": 180
+      }
     }
   ]
 }

@@ -5,6 +5,7 @@
  */
 
 import { generateId } from './utils.js';
+import { DEFAULT_TABLET, DEFAULT_AREA } from '../constants/index.js';
 
 /**
  * @typedef {Object} Tablet
@@ -57,22 +58,8 @@ const FAVORITES_KEY = 'osurea:favorites';
  * Default preferences
  */
 const DEFAULT_PREFS = {
-  tablet: {
-    brand: 'Wacom',
-    model: 'CTL-472 Small (One by Wacom S)',
-    width: 152,
-    height: 95,
-    isCustom: false,
-  },
-  area: {
-    width: 76,
-    height: 47.5,
-    x: 76,
-    y: 47.5,
-    radius: 0,
-    ratioLocked: true,
-    ratio: 1.6,
-  },
+  tablet: { ...DEFAULT_TABLET },
+  area: { ...DEFAULT_AREA, ratioLocked: true, ratio: 1.6 },
   ui: {
     theme: 'dark',
     locale: 'en',

@@ -130,3 +130,58 @@ export function generateId() {
     return v.toString(16);
   });
 }
+
+/**
+ * @typedef {Object} AreaState
+ * @property {number} x - X position (center)
+ * @property {number} y - Y position (center)
+ * @property {number} width - Area width
+ * @property {number} height - Area height
+ * @property {number} [radius] - Corner radius (0-100)
+ * @property {number} [rotation] - Rotation in degrees (-180 to 180)
+ */
+
+/**
+ * @typedef {Object} AppState
+ * @property {Object|null} tablet - Current tablet
+ * @property {AreaState} area - Zone A area
+ * @property {AreaState} areaB - Zone B area
+ * @property {'A'|'B'} activeZone - Currently active zone
+ * @property {boolean} comparisonMode - Whether comparison mode is on
+ * @property {boolean} lockRatio - Whether aspect ratio is locked
+ * @property {number} lockedRatio - Locked ratio for zone A
+ * @property {number} lockedRatioB - Locked ratio for zone B
+ * @property {boolean} showGrid - Whether grid is visible
+ */
+
+/**
+ * Get the currently active area based on activeZone
+ * @param {AppState} state - Application state
+ * @returns {AreaState} - The active area (A or B)
+ */
+export function getActiveArea(state) {
+  return state.activeZone === 'A' ? state.area : state.areaB;
+}
+
+/**
+ * Get the locked ratio for the active zone
+ * @param {AppState} state - Application state
+ * @returns {number} - The locked ratio
+ */
+export function getActiveLockedRatio(state) {
+  return state.activeZone === 'A' ? state.lockedRatio : state.lockedRatioB;
+}
+
+/**
+ * Update the active area in the visualizer
+ * @param {AppState} state - Application state
+ * @param {Function} setArea - Function to update zone A
+ * @param {Function} setAreaB - Function to update zone B
+ */
+export function syncActiveArea(state, setArea, setAreaB) {
+  if (state.activeZone === 'A') {
+    setArea(state.area);
+  } else {
+    setAreaB(state.areaB);
+  }
+}
