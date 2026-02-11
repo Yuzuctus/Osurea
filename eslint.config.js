@@ -1,6 +1,10 @@
 import globals from 'globals';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
+  {
+    ignores: ['dist/**', 'node_modules/**'],
+  },
   {
     languageOptions: {
       ecmaVersion: 2022,
@@ -43,6 +47,6 @@ export default [
       'prefer-rest-params': 'error',
       'prefer-spread': 'error',
     },
-    ignores: ['dist/**', 'node_modules/**'],
   },
+  eslintConfigPrettier,
 ];

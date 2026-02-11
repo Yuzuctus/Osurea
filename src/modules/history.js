@@ -203,15 +203,3 @@ export function initKeyboardShortcuts(onUndo, onRedo) {
     document.removeEventListener('keydown', handleKeydown);
   };
 }
-
-export default {
-  pushState,
-  undo,
-  redo,
-  canUndo,
-  canRedo,
-  clearHistory,
-  getHistoryInfo,
-  subscribeToHistory,
-  initKeyboardShortcuts,
-};

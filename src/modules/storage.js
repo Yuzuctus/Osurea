@@ -5,7 +5,7 @@
  */
 
 import { generateId } from './utils.js';
-import { DEFAULT_TABLET, DEFAULT_AREA } from '../constants/index.js';
+import { DEFAULT_TABLET, DEFAULT_AREA, STORAGE_KEYS } from '../constants/index.js';
 
 /**
  * @typedef {Object} Tablet
@@ -51,8 +51,8 @@ import { DEFAULT_TABLET, DEFAULT_AREA } from '../constants/index.js';
  * @property {string} createdAt - ISO date string
  */
 
-const PREFS_KEY = 'osurea:prefs';
-const FAVORITES_KEY = 'osurea:favorites';
+const PREFS_KEY = STORAGE_KEYS.PREFS;
+const FAVORITES_KEY = STORAGE_KEYS.FAVORITES;
 
 /**
  * Default preferences
@@ -278,41 +278,8 @@ export function getFavorite(id) {
   return favorites.find(f => f.id === id) || null;
 }
 
-/**
- * Sort favorites
- * @param {'date'|'name'|'size'} sortBy
- * @param {'asc'|'desc'} order
- * @returns {Array}
- */
-export function sortFavorites(sortBy = 'date', order = 'desc') {
-  const favorites = getFavorites();
-
-  const sorted = [...favorites].sort((a, b) => {
-    let comparison = 0;
-
-    switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'size':
-        const sizeA = a.area.width * a.area.height;
-        const sizeB = b.area.width * b.area.height;
-        comparison = sizeA - sizeB;
-        break;
-      case 'date':
-      default:
-        comparison = new Date(a.createdAt) - new Date(b.createdAt);
-        break;
-    }
-
-    return order === 'desc' ? -comparison : comparison;
-  });
-
-  return sorted;
-}
-
 // ============================================
-// THEME
+// THEME (thin wrappers used by themeController)
 // ============================================
 
 /**
@@ -329,24 +296,4 @@ export function getTheme() {
  */
 export function setTheme(theme) {
   updatePref('ui.theme', theme);
-  document.documentElement.setAttribute('data-theme', theme);
-}
-
-/**
- * Toggle theme
- * @returns {'dark'|'light'} - New theme
- */
-export function toggleTheme() {
-  const current = getTheme();
-  const newTheme = current === 'dark' ? 'light' : 'dark';
-  setTheme(newTheme);
-  return newTheme;
-}
-
-/**
- * Initialize theme from preferences
- */
-export function initTheme() {
-  const theme = getTheme();
-  document.documentElement.setAttribute('data-theme', theme);
 }
