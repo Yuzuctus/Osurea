@@ -6,6 +6,7 @@
 
 import { t } from './i18n.js';
 import { icon } from './icons.js';
+import { escapeHtml } from './utils.js';
 
 /**
  * @typedef {Object} ModalOptions
@@ -131,18 +132,18 @@ function showModal(options) {
       bodyContent = customContent;
     } else if (type === 'prompt') {
       bodyContent = `
-        ${message ? `<p class="modal-message">${message}</p>` : ''}
+        ${message ? `<p class="modal-message">${escapeHtml(message)}</p>` : ''}
         <input 
           type="text" 
           class="input modal-input" 
           id="modal-input" 
-          value="${inputValue}"
-          placeholder="${inputPlaceholder}"
+          value="${escapeHtml(inputValue)}"
+          placeholder="${escapeHtml(inputPlaceholder)}"
           autofocus
         >
       `;
     } else {
-      bodyContent = message ? `<p class="modal-message">${message}</p>` : '';
+      bodyContent = message ? `<p class="modal-message">${escapeHtml(message)}</p>` : '';
     }
 
     const cancelBtnHtml = showCancel
@@ -157,7 +158,7 @@ function showModal(options) {
       <div class="modal-overlay" id="modal-overlay"></div>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-header">
-          <h3 class="modal-title" id="modal-title">${title}</h3>
+          <h3 class="modal-title" id="modal-title">${escapeHtml(title)}</h3>
           <button class="btn-icon modal-close" id="modal-close" aria-label="Close">
             ${icon('close')}
           </button>
@@ -371,7 +372,7 @@ export async function showSaveFavoriteModal(defaultName = '') {
       <div class="modal-form-section">
         <div class="input-group">
           <label for="save-name">${t('favorites.namePrompt')}</label>
-          <input type="text" id="save-name" class="input" value="${defaultName}" />
+          <input type="text" id="save-name" class="input" value="${escapeHtml(defaultName)}" />
         </div>
       </div>
       
@@ -408,7 +409,7 @@ export async function showEditFavoriteModal(favorite) {
       <div class="modal-form-section">
         <div class="input-group">
           <label for="edit-name">${t('favorites.namePrompt')}</label>
-          <input type="text" id="edit-name" class="input" value="${favorite.name || ''}" />
+          <input type="text" id="edit-name" class="input" value="${escapeHtml(favorite.name || '')}" />
         </div>
       </div>
       
@@ -420,7 +421,7 @@ export async function showEditFavoriteModal(favorite) {
             class="input textarea" 
             rows="3" 
             placeholder="${t('favorites.commentPlaceholder')}"
-          >${favorite.comment || ''}</textarea>
+          >${escapeHtml(favorite.comment || '')}</textarea>
         </div>
       </div>
       

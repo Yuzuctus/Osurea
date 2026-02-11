@@ -6,6 +6,7 @@
 import { icon } from './icons.js';
 import { t } from './i18n.js';
 import { DEFAULT_TABLET } from '../constants/index.js';
+import { escapeHtml } from './utils.js';
 
 let tablets = [];
 let selectedBrand = null;
@@ -27,6 +28,9 @@ let customBtn = null;
 async function loadTablets() {
   try {
     const response = await fetch('/tablets.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load tablets: ${response.status}`);
+    }
     tablets = await response.json();
     return tablets;
   } catch (e) {
@@ -72,9 +76,9 @@ function renderBrands(filteredTablets = tablets) {
       brand => `
     <button 
       class="tablet-brand-item ${brand === selectedBrand ? 'active' : ''}" 
-      data-brand="${brand}"
+      data-brand="${escapeHtml(brand)}"
     >
-      ${brand}
+      ${escapeHtml(brand)}
       <span class="brand-count">${getModels(brand).length}</span>
     </button>
   `
@@ -106,7 +110,7 @@ function renderModels(brand) {
   const models = getModels(brand);
 
   if (!brand || models.length === 0) {
-    modelsList.innerHTML = `<div class="models-empty">Select a brand</div>`;
+    modelsList.innerHTML = `<div class="models-empty">${t('tablet.selectTablet')}</div>`;
     return;
   }
 
@@ -115,11 +119,11 @@ function renderModels(brand) {
       model => `
     <button 
       class="tablet-model-item ${selectedTablet?.model === model.model ? 'active' : ''}" 
-      data-model="${model.model}"
+      data-model="${escapeHtml(model.model)}"
       data-width="${model.width}"
       data-height="${model.height}"
     >
-      <span class="model-name">${model.model}</span>
+      <span class="model-name">${escapeHtml(model.model)}</span>
       <span class="model-size">${model.width} × ${model.height}</span>
     </button>
   `
