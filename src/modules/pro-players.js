@@ -7,6 +7,7 @@
 import { icon } from './icons.js';
 import { t } from './i18n.js';
 import { escapeHtml } from './utils.js';
+import { generatePreview } from './preview.js';
 
 /** @type {Array} - Cached pro players data */
 let proPlayersData = [];
@@ -14,32 +15,11 @@ let proPlayersData = [];
 /** @type {Function|null} - Callback when a player config is selected */
 let onSelect = null;
 
+/** @type {boolean} - Whether data has been fetched */
+let dataLoaded = false;
+
 /** @type {HTMLElement|null} - Modal container */
 let modalContainer = null;
-
-/**
- * Generate SVG preview of area
- */
-function generatePreview(tablet, area) {
-  const scale = 100 / Math.max(tablet.width, tablet.height);
-  const w = tablet.width * scale;
-  const h = tablet.height * scale;
-
-  const areaX = (area.x - area.width / 2) * scale;
-  const areaY = (area.y - area.height / 2) * scale;
-  const areaW = area.width * scale;
-  const areaH = area.height * scale;
-
-  const clampedX = Math.max(0, Math.min(areaX, w - areaW));
-  const clampedY = Math.max(0, Math.min(areaY, h - areaH));
-
-  return `
-    <svg viewBox="0 0 ${w} ${h}" class="pro-player-preview" preserveAspectRatio="xMidYMid meet">
-      <rect x="0" y="0" width="${w}" height="${h}" class="preview-tablet"/>
-      <rect x="${clampedX}" y="${clampedY}" width="${areaW}" height="${areaH}" class="preview-area" rx="2"/>
-    </svg>
-  `;
-}
 
 /**
  * Render a single player card
@@ -49,7 +29,7 @@ function renderPlayerCard(player) {
   return `
     <div class="pro-player-card" data-name="${escapeHtml(name)}">
       <div class="pro-player-preview-wrapper">
-        ${generatePreview(tablet, area)}
+        ${generatePreview(tablet, area, 'pro-player-preview')}
       </div>
       <div class="pro-player-info">
         <h3 class="pro-player-name">${escapeHtml(name)}</h3>
@@ -185,15 +165,18 @@ async function fetchProPlayers() {
  * Initialize pro players module
  * @param {Function} onSelectPlayer - Callback when a player config is selected
  */
-export async function initProPlayers(onSelectPlayer = null) {
+export function initProPlayers(onSelectPlayer = null) {
   onSelect = onSelectPlayer;
-  await fetchProPlayers();
 }
 
 /**
- * Open the pro players selection modal
+ * Open the pro players selection modal (lazy-loads data on first open)
  */
-export function openProPlayersModal() {
+export async function openProPlayersModal() {
+  if (!dataLoaded) {
+    await fetchProPlayers();
+    dataLoaded = true;
+  }
   showProPlayersModal();
 }
 
