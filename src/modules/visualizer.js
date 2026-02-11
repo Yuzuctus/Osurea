@@ -192,9 +192,13 @@ function updateAreaBDisplay() {
 
 /**
  * Clamp area position within tablet bounds
+ * @param {number} x - Center X position
+ * @param {number} y - Center Y position
+ * @param {Object} [areaOverride] - Optional area dims to use instead of active zone
  */
-function clampPosition(x, y) {
-  const { width: areaW, height: areaH } = state.area;
+function clampPosition(x, y, areaOverride) {
+  const activeArea = areaOverride || (state.activeZone === 'A' ? state.area : state.areaB);
+  const { width: areaW, height: areaH } = activeArea;
   const { width: tabletW, height: tabletH } = state.tablet;
 
   const halfW = areaW / 2;

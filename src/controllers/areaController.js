@@ -27,15 +27,22 @@ export function snapToPoint(value, snapPoints, threshold = 5) {
  * Clamp area position within tablet bounds
  * @param {import('../modules/utils.js').AppState} state - App state
  */
-export function clampAreaPosition(state) {
+/**
+ * Clamp area position within tablet bounds
+ * @param {import('../modules/utils.js').AppState} state - App state
+ * @param {'A'|'B'} [zone] - Optional zone override (defaults to activeZone)
+ */
+export function clampAreaPosition(state, zone) {
   if (!state.tablet) return;
 
-  const activeArea = getActiveArea(state);
-  const halfW = activeArea.width / 2;
-  const halfH = activeArea.height / 2;
+  const area = zone
+    ? (zone === 'A' ? state.area : state.areaB)
+    : getActiveArea(state);
+  const halfW = area.width / 2;
+  const halfH = area.height / 2;
 
-  activeArea.x = clamp(activeArea.x, halfW, state.tablet.width - halfW);
-  activeArea.y = clamp(activeArea.y, halfH, state.tablet.height - halfH);
+  area.x = clamp(area.x, halfW, state.tablet.width - halfW);
+  area.y = clamp(area.y, halfH, state.tablet.height - halfH);
 }
 
 /**

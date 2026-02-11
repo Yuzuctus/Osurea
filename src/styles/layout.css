@@ -256,7 +256,7 @@
 /* === TOP ROW === */
 .top-row {
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: min(400px, 35%) 1fr;
   gap: var(--space-lg);
   min-height: 520px;
 }

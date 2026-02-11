@@ -77,7 +77,7 @@ import { SAVE_DEBOUNCE_DELAY } from './constants/index.js';
 const state = {
   tablet: null,
   area: { x: 0, y: 0, width: 100, height: 62.5, radius: 0, rotation: 0 },
-  areaB: { x: 0, y: 0, width: 100, height: 62.5, radius: 0, rotation: 0 },
+  areaB: { x: 76, y: 47.5, width: 100, height: 62.5, radius: 0, rotation: 0 },
   comparisonMode: false,
   activeZone: 'A',
   lockRatio: true,
@@ -248,9 +248,15 @@ function updateSliders() {
   const activeArea = getActiveArea(state);
   const radius = activeArea.radius || 0;
   const rotation = activeArea.rotation || 0;
-  if (DOM.radiusSlider) DOM.radiusSlider.value = radius;
+  if (DOM.radiusSlider) {
+    DOM.radiusSlider.value = radius;
+    DOM.radiusSlider.setAttribute('aria-valuenow', radius);
+  }
   if (DOM.radiusInput) DOM.radiusInput.value = radius;
-  if (DOM.rotationSlider) DOM.rotationSlider.value = rotation;
+  if (DOM.rotationSlider) {
+    DOM.rotationSlider.value = rotation;
+    DOM.rotationSlider.setAttribute('aria-valuenow', rotation);
+  }
   if (DOM.rotationInput) DOM.rotationInput.value = rotation;
 }
 
@@ -294,6 +300,13 @@ function onTabletSelected(tablet) {
   state.area.y = tablet.height / 2;
   clampAreaPosition(state);
   setArea(state.area);
+
+  // Also clamp Zone B when tablet changes
+  if (state.areaB.width > tablet.width) state.areaB.width = tablet.width;
+  if (state.areaB.height > tablet.height) state.areaB.height = tablet.height;
+  clampAreaPosition(state, 'B');
+  setAreaB(state.areaB);
+
   updateInputs();
   saveState();
 }
@@ -557,7 +570,8 @@ async function init() {
     initVisualizer(DOM.visualizer);
     if (state.tablet) {
       setTablet(state.tablet.width, state.tablet.height);
-      clampAreaPosition(state);
+      clampAreaPosition(state, 'A');
+      clampAreaPosition(state, 'B');
       setArea(state.area);
       setAreaB(state.areaB);
       setAreaRadius(state.area.radius || 0);
@@ -582,8 +596,8 @@ async function init() {
     initFavorites(DOM.favorites, onFavoriteSelected);
   }
 
-  // Pro players
-  await initProPlayers(onProPlayerSelected);
+  // Pro players (lazy-loaded on first modal open)
+  initProPlayers(onProPlayerSelected);
 
   // Keyboard shortcuts
   initKeyboardShortcuts(handleUndo, handleRedo);
@@ -616,6 +630,15 @@ export {
   setCurrentTablet,
   updateTabletInfo,
 };
+
+// Global error handlers
+window.addEventListener('unhandledrejection', event => {
+  console.error('Unhandled promise rejection:', event.reason);
+});
+
+window.addEventListener('error', event => {
+  console.error('Uncaught error:', event.error);
+});
 
 // Start app
 if (document.readyState === 'loading') {

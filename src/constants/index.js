@@ -59,9 +59,10 @@ export const DEFAULT_AREA = {
 
 /**
  * Maximum scale for visualizer
+ * Allows small tablets to fill more of the available space
  * @constant {number}
  */
-export const MAX_VISUALIZER_SCALE = 3;
+export const MAX_VISUALIZER_SCALE = 6;
 
 /**
  * Visualizer padding in pixels
