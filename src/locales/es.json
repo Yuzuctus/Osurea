@@ -66,7 +66,7 @@
   "favorites.load": "Cargar",
   "favorites.edit": "Editar",
   "favorites.delete": "Eliminar",
-  "favorites.deleteConfirm": "¿Eliminar {name}?",
+  "favorites.deleteConfirm": "¿Eliminar {{name}}?",
   "favorites.editPrompt": "Nuevo nombre:",
   "favorites.savePrompt": "Nombre para esta configuración:",
   "favorites.confirmDelete": "¿Eliminar este favorito?",

@@ -66,7 +66,7 @@
   "favorites.load": "Load",
   "favorites.edit": "Edit",
   "favorites.delete": "Delete",
-  "favorites.deleteConfirm": "Delete {name}?",
+  "favorites.deleteConfirm": "Delete {{name}}?",
   "favorites.editPrompt": "New name:",
   "favorites.savePrompt": "Name for this configuration:",
   "favorites.confirmDelete": "Delete this favorite?",

@@ -18,6 +18,20 @@
       content="Visualize and configure your osu! tablet area with precision"
     />
     <meta name="theme-color" content="#52b788" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Osu!rea - Tablet Area Visualizer" />
+    <meta property="og:description" content="Visualize and configure your osu! tablet area with precision. Compare areas, save favorites, and use pro player presets." />
+    <meta property="og:url" content="https://osurea.pages.dev/" />
+    <meta property="og:site_name" content="Osu!rea" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Osu!rea - Tablet Area Visualizer" />
+    <meta name="twitter:description" content="Visualize and configure your osu! tablet area with precision. Compare areas, save favorites, and use pro player presets." />
+
+    <link rel="canonical" href="https://osurea.pages.dev/" />
   </head>
   <body>
     <div class="app">
@@ -94,7 +108,8 @@
               <button
                 id="toggle-comparison"
                 class="comparison-toggle"
-                title="Mode comparaison"
+              data-i18n-title="comparison.toggle"
+              title="Comparison"
                 aria-label="Toggle comparison mode"
               >
                 <span id="comparison-icon"></span>
@@ -120,7 +135,8 @@
                   <button
                     id="toggle-grid"
                     class="tool-btn active"
-                    title="Grille"
+                    data-i18n-title="area.toggleGrid"
+                    title="Grid"
                     aria-label="Toggle grid"
                   >
                     <span id="grid-icon"></span>
@@ -128,7 +144,8 @@
                   <button
                     id="full-area"
                     class="tool-btn"
-                    title="Zone complète"
+                    data-i18n-title="area.fullArea"
+                    title="Full Area"
                     aria-label="Set full area"
                   >
                     <span id="fullarea-icon"></span>
@@ -136,7 +153,8 @@
                   <button
                     id="show-recap"
                     class="tool-btn"
-                    title="Récapitulatif"
+                    data-i18n-title="area.recap"
+                    title="Summary"
                     aria-label="Show recap"
                   >
                     <span id="recap-icon"></span>
@@ -303,7 +321,7 @@
 
               <!-- Actions Row -->
               <div class="config-actions-compact">
-                <button id="save-favorite" class="btn-primary btn-sm" title="Sauvegarder en favori">
+                <button id="save-favorite" class="btn-primary btn-sm" data-i18n-title="favorites.save" title="Save as Favorite">
                   <span id="save-icon"></span>
                   <span data-i18n="favorites.saveShort">Favori</span>
                 </button>
@@ -337,5 +355,8 @@
     </div>
 
     <script type="module" src="/src/main.js"></script>
+
+    <!-- Notification region for screen readers -->
+    <div id="aria-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   </body>
 </html>
