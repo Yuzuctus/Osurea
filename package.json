@@ -5,7 +5,7 @@
   "description": "Area Visualizer for osu! tablet players",
   "scripts": {
     "dev": "vite",
-    "build": "npx vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",

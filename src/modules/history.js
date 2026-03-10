@@ -4,6 +4,7 @@
  */
 
 import { MAX_HISTORY_SIZE } from '../constants/index.js';
+import { logError } from './logger.js';
 
 /**
  * @typedef {Object} HistoryEntry
@@ -164,7 +165,7 @@ function notifySubscribers() {
     try {
       callback(info);
     } catch (error) {
-      console.error('History subscriber error:', error);
+      logError('History subscriber error:', error);
     }
   });
 }

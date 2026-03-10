@@ -3,6 +3,8 @@
  * All icons as inline SVG strings
  */
 
+import { logWarn } from './logger.js';
+
 export const icons = {
   // UI Icons
   tablet: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>`,
@@ -109,7 +111,7 @@ export const icons = {
 export function icon(name, className = '') {
   const svg = icons[name];
   if (!svg) {
-    console.warn(`Icon "${name}" not found`);
+    logWarn(`Icon "${name}" not found`);
     return '';
   }
 

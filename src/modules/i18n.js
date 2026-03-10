@@ -5,6 +5,7 @@
  */
 
 import { STORAGE_KEYS, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../constants/index.js';
+import { logWarn } from './logger.js';
 
 /** @type {Object<string, Object>} - Cached locale data */
 const locales = {};
@@ -28,7 +29,7 @@ async function loadLocale(locale) {
     locales[locale] = module.default;
     return module.default;
   } catch (error) {
-    console.warn(`Failed to load locale ${locale}:`, error);
+    logWarn(`Failed to load locale ${locale}:`, error);
     // Fallback to English if available
     if (locale !== DEFAULT_LOCALE && locales[DEFAULT_LOCALE]) {
       return locales[DEFAULT_LOCALE];
@@ -136,7 +137,7 @@ export function translatePage() {
  */
 export async function setLocale(locale) {
   if (!SUPPORTED_LOCALES.includes(locale)) {
-    console.warn(`Locale "${locale}" not supported`);
+    logWarn(`Locale "${locale}" not supported`);
     return;
   }
 

@@ -6,6 +6,7 @@
 
 import { icon } from './icons.js';
 import { t } from './i18n.js';
+import { logWarn } from './logger.js';
 import { escapeHtml } from './utils.js';
 import { generatePreview } from './preview.js';
 
@@ -154,8 +155,7 @@ async function fetchProPlayers() {
     proPlayersData = data.players || [];
     return proPlayersData;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load pro players:', error);
+    logWarn('Failed to load pro players:', error);
     proPlayersData = [];
     return [];
   }

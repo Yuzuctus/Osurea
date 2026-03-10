@@ -44,6 +44,9 @@ function sortFavorites(favorites) {
     case 'area':
       sorted.sort((a, b) => b.area.width * b.area.height - a.area.width * a.area.height);
       break;
+    default:
+      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      break;
   }
 
   if (sortDirection === 'desc' && currentSort !== 'date') {

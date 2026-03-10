@@ -5,6 +5,7 @@
  */
 
 import { generateId } from './utils.js';
+import { logWarn } from './logger.js';
 import { DEFAULT_TABLET, DEFAULT_AREA, STORAGE_KEYS } from '../constants/index.js';
 
 /**
@@ -101,7 +102,7 @@ export function loadPrefs() {
       return deepMerge(DEFAULT_PREFS, parsed);
     }
   } catch (e) {
-    console.warn('Failed to load preferences:', e);
+    logWarn('Failed to load preferences:', e);
   }
   return { ...DEFAULT_PREFS };
 }
@@ -115,7 +116,7 @@ export function savePrefs(prefs) {
     const merged = deepMerge(DEFAULT_PREFS, prefs);
     localStorage.setItem(PREFS_KEY, JSON.stringify(merged));
   } catch (e) {
-    console.warn('Failed to save preferences:', e);
+    logWarn('Failed to save preferences:', e);
   }
 }
 
@@ -175,7 +176,7 @@ export function getFavorites() {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.warn('Failed to load favorites:', e);
+    logWarn('Failed to load favorites:', e);
   }
   return [];
 }
@@ -188,7 +189,7 @@ function saveFavorites(favorites) {
   try {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   } catch (e) {
-    console.warn('Failed to save favorites:', e);
+    logWarn('Failed to save favorites:', e);
   }
 }
 

@@ -5,6 +5,7 @@
 
 import { icon } from './icons.js';
 import { t } from './i18n.js';
+import { logError } from './logger.js';
 import { DEFAULT_TABLET } from '../constants/index.js';
 import { escapeHtml } from './utils.js';
 
@@ -34,7 +35,7 @@ async function loadTablets() {
     tablets = await response.json();
     return tablets;
   } catch (e) {
-    console.error('Failed to load tablets:', e);
+    logError('Failed to load tablets:', e);
     return [];
   }
 }
