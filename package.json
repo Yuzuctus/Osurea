@@ -1,6 +1,6 @@
 {
   "name": "osurea",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "description": "Area Visualizer for osu! tablet players",
   "scripts": {

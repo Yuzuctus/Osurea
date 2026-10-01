@@ -1,523 +1,377 @@
 /**
  * Osu!rea - Visualizer Module
- * Canvas-like visualization using DOM elements
+ * Draws the tablet and its active area(s) with DOM elements.
+ * Pointer events cover mouse, pen and touch; the area also moves with the
+ * arrow keys once focused.
  * @module visualizer
  */
 
 import { icon } from './icons.js';
-import { throttle } from './utils.js';
+import { t } from './i18n.js';
+import { clamp, clampCentre, getHalfExtents, formatNumber } from './utils.js';
 import {
   MAX_VISUALIZER_SCALE,
   VISUALIZER_PADDING,
-  RESIZE_THROTTLE_DELAY,
+  GRID_STEP_MM,
+  KEYBOARD_STEP_MM,
 } from '../constants/index.js';
 
-/**
- * @typedef {Object} VisualizerState
- * @property {Object} tablet - Tablet dimensions
- * @property {number} tablet.width - Tablet width in mm
- * @property {number} tablet.height - Tablet height in mm
- * @property {Object} area - Active area configuration
- * @property {number} area.width - Area width in mm
- * @property {number} area.height - Area height in mm
- * @property {number} area.x - Center X position in mm
- * @property {number} area.y - Center Y position in mm
- * @property {number} area.radius - Corner radius percentage
- * @property {number} area.rotation - Rotation angle in degrees
- * @property {Object} areaB - Zone B area configuration (comparison mode)
- * @property {boolean} comparisonMode - Whether comparison mode is enabled
- * @property {string} activeZone - Active zone ('A' or 'B')
- * @property {number} scale - Current display scale
- * @property {boolean} isDragging - Whether area is being dragged
- * @property {Object} dragOffset - Drag offset coordinates
- * @property {boolean} gridVisible - Whether grid is visible
- */
+/** Alignment positions, in reading order (3 × 3 grid). */
+export const ALIGN_POSITIONS = [
+  'top-left',
+  'top',
+  'top-right',
+  'left',
+  'center',
+  'right',
+  'bottom-left',
+  'bottom',
+  'bottom-right',
+];
 
-// DOM element references (cached)
+const ALIGN_ICONS = {
+  'top-left': 'alignTopLeft',
+  top: 'alignTop',
+  'top-right': 'alignTopRight',
+  left: 'alignLeft',
+  center: 'alignCenter',
+  right: 'alignRight',
+  'bottom-left': 'alignBottomLeft',
+  bottom: 'alignBottom',
+  'bottom-right': 'alignBottomRight',
+};
+
+// DOM element references
 let container = null;
 let tabletBoundary = null;
-let areaRectangle = null;
-let areaRectangleB = null;
-let gridElement = null;
-let contextMenu = null;
-
-// Cached container dimensions
-let cachedContainerRect = null;
+/** @type {{A: HTMLElement|null, B: HTMLElement|null}} */
+const areaEls = { A: null, B: null };
+let alignMenu = null;
+let alignReturnFocus = null;
 
 const state = {
   tablet: { width: 152, height: 95 },
-  area: { width: 76, height: 47.5, x: 76, y: 47.5, radius: 0, rotation: 0 },
-  areaB: { width: 76, height: 47.5, x: 76, y: 47.5, radius: 0, rotation: 0 },
+  areas: {
+    A: { width: 76, height: 47.5, x: 76, y: 47.5, radius: 0, rotation: 0 },
+    B: { width: 76, height: 47.5, x: 76, y: 47.5, radius: 0, rotation: 0 },
+  },
   comparisonMode: false,
   activeZone: 'A',
   scale: 1,
-  isDragging: false,
-  dragOffset: { x: 0, y: 0 },
   gridVisible: true,
+  drag: null,
 };
 
+/**
+ * Called when the user moves the area in the visualizer.
+ * @type {((area: Object, zone: 'A'|'B', commit: boolean) => void)|null}
+ */
 let onAreaChange = null;
 
 /**
- * Invalidate cached container dimensions
- */
-function invalidateCache() {
-  cachedContainerRect = null;
-}
-
-/**
- * Get container rect (cached)
- * @returns {DOMRect|null}
- */
-function getContainerRect() {
-  if (!container) return null;
-  if (!cachedContainerRect) {
-    cachedContainerRect = container.getBoundingClientRect();
-  }
-  return cachedContainerRect;
-}
-
-/**
  * Calculate scale to fit tablet in container
- * @returns {number} - Scale factor
+ * @returns {number} - Pixels per millimetre
  */
 function calculateScale() {
   if (!container || !state.tablet.width || !state.tablet.height) return 1;
-
-  const containerRect = getContainerRect();
-  if (!containerRect) return 1;
-
-  const availableWidth = containerRect.width - VISUALIZER_PADDING * 2;
-  const availableHeight = containerRect.height - VISUALIZER_PADDING * 2;
-
-  const scaleX = availableWidth / state.tablet.width;
-  const scaleY = availableHeight / state.tablet.height;
-
-  return Math.min(scaleX, scaleY, MAX_VISUALIZER_SCALE);
+  const availableWidth = container.clientWidth - VISUALIZER_PADDING * 2;
+  const availableHeight = container.clientHeight - VISUALIZER_PADDING * 2;
+  const scale = Math.min(
+    availableWidth / state.tablet.width,
+    availableHeight / state.tablet.height,
+    MAX_VISUALIZER_SCALE
+  );
+  return Math.max(scale, 0.1);
 }
 
 /**
  * Update tablet boundary display
  */
-function updateTabletDisplay() {
+function renderTablet() {
   if (!tabletBoundary) return;
-
   state.scale = calculateScale();
-
-  const displayWidth = state.tablet.width * state.scale;
-  const displayHeight = state.tablet.height * state.scale;
-
-  tabletBoundary.style.width = `${displayWidth}px`;
-  tabletBoundary.style.height = `${displayHeight}px`;
+  tabletBoundary.style.width = `${state.tablet.width * state.scale}px`;
+  tabletBoundary.style.height = `${state.tablet.height * state.scale}px`;
+  tabletBoundary.style.setProperty('--os-grid-step', `${GRID_STEP_MM * state.scale}px`);
+  tabletBoundary.dataset.grid = String(state.gridVisible);
 }
 
 /**
- * Update area rectangle display
+ * Render one zone
+ * @param {'A'|'B'} zone
  */
-function updateAreaDisplay() {
-  if (!areaRectangle || !tabletBoundary) return;
+function renderArea(zone) {
+  const el = areaEls[zone];
+  if (!el) return;
 
-  const { width, height, x, y, radius, rotation } = state.area;
+  const visible = zone === 'A' || state.comparisonMode;
+  el.hidden = !visible;
+  if (!visible) return;
+
+  const { width, height, x, y, radius, rotation } = state.areas[zone];
   const { scale } = state;
 
-  // Calculate pixel dimensions
-  const displayWidth = width * scale;
-  const displayHeight = height * scale;
+  el.style.width = `${width * scale}px`;
+  el.style.height = `${height * scale}px`;
+  el.style.left = `${(x - width / 2) * scale}px`;
+  el.style.top = `${(y - height / 2) * scale}px`;
+  // 100 % radius = half of the smallest side
+  el.style.borderRadius = `${((radius || 0) / 100) * (Math.min(width, height) / 2) * scale}px`;
+  el.style.transform = `rotate(${rotation || 0}deg)`;
 
-  // Position relative to tablet boundary (x, y are center coordinates)
-  const left = (x - width / 2) * scale;
-  const top = (y - height / 2) * scale;
+  const inactive = state.comparisonMode && state.activeZone !== zone;
+  el.classList.toggle('is-inactive', inactive);
+  el.tabIndex = inactive ? -1 : 0;
 
-  areaRectangle.style.width = `${displayWidth}px`;
-  areaRectangle.style.height = `${displayHeight}px`;
-  areaRectangle.style.left = `${left}px`;
-  areaRectangle.style.top = `${top}px`;
+  const label = el.querySelector('.os-area__label');
+  if (label) label.hidden = !state.comparisonMode;
 
-  // Calculate border-radius: 50% of smallest dimension at 100%
-  const maxRadius = Math.min(width, height) / 2;
-  const actualRadius = (radius / 100) * maxRadius * scale;
-  areaRectangle.style.borderRadius = `${actualRadius}px`;
-
-  // Apply rotation
-  areaRectangle.style.transform = `rotate(${rotation || 0}deg)`;
-
-  // Update active/inactive state in comparison mode
-  if (state.comparisonMode) {
-    areaRectangle.classList.toggle('inactive', state.activeZone !== 'A');
-  } else {
-    areaRectangle.classList.remove('inactive');
-  }
-}
-
-/**
- * Update area rectangle B display (comparison mode)
- */
-function updateAreaBDisplay() {
-  if (!areaRectangleB || !tabletBoundary) return;
-
-  if (!state.comparisonMode) {
-    areaRectangleB.classList.add('hidden');
-    return;
-  }
-
-  areaRectangleB.classList.remove('hidden');
-
-  const { width, height, x, y, radius, rotation } = state.areaB;
-  const { scale } = state;
-
-  // Calculate pixel dimensions
-  const displayWidth = width * scale;
-  const displayHeight = height * scale;
-
-  // Position relative to tablet boundary (x, y are center coordinates)
-  const left = (x - width / 2) * scale;
-  const top = (y - height / 2) * scale;
-
-  areaRectangleB.style.width = `${displayWidth}px`;
-  areaRectangleB.style.height = `${displayHeight}px`;
-  areaRectangleB.style.left = `${left}px`;
-  areaRectangleB.style.top = `${top}px`;
-
-  // Calculate border-radius
-  const maxRadius = Math.min(width, height) / 2;
-  const actualRadius = (radius / 100) * maxRadius * scale;
-  areaRectangleB.style.borderRadius = `${actualRadius}px`;
-
-  // Apply rotation
-  areaRectangleB.style.transform = `rotate(${rotation || 0}deg)`;
-
-  // Update active state
-  areaRectangleB.classList.toggle('active', state.activeZone === 'B');
-}
-
-/**
- * Clamp area position within tablet bounds
- * @param {number} x - Center X position
- * @param {number} y - Center Y position
- * @param {Object} [areaOverride] - Optional area dims to use instead of active zone
- */
-function clampPosition(x, y, areaOverride) {
-  const activeArea = areaOverride || (state.activeZone === 'A' ? state.area : state.areaB);
-  const { width: areaW, height: areaH } = activeArea;
-  const { width: tabletW, height: tabletH } = state.tablet;
-
-  const halfW = areaW / 2;
-  const halfH = areaH / 2;
-
-  return {
-    x: Math.max(halfW, Math.min(tabletW - halfW, x)),
-    y: Math.max(halfH, Math.min(tabletH - halfH, y)),
-  };
-}
-
-/**
- * Handle drag start
- */
-function handleDragStart(e) {
-  if (e.button !== 0) return; // Left click only
-
-  e.preventDefault();
-  state.isDragging = true;
-
-  const activeRect = state.activeZone === 'A' ? areaRectangle : areaRectangleB;
-  activeRect.classList.add('dragging');
-
-  const rect = activeRect.getBoundingClientRect();
-  const clientX = e.clientX || e.touches?.[0]?.clientX;
-  const clientY = e.clientY || e.touches?.[0]?.clientY;
-
-  state.dragOffset = {
-    x: clientX - (rect.left + rect.width / 2),
-    y: clientY - (rect.top + rect.height / 2),
-  };
-
-  document.addEventListener('mousemove', handleDragMove);
-  document.addEventListener('mouseup', handleDragEnd);
-  document.addEventListener('touchmove', handleDragMove, { passive: false });
-  document.addEventListener('touchend', handleDragEnd);
-}
-
-/**
- * Handle drag move
- */
-function handleDragMove(e) {
-  if (!state.isDragging) return;
-
-  e.preventDefault();
-
-  const clientX = e.clientX || e.touches?.[0]?.clientX;
-  const clientY = e.clientY || e.touches?.[0]?.clientY;
-
-  const tabletRect = tabletBoundary.getBoundingClientRect();
-
-  // Calculate new position in tablet coordinates
-  const relativeX = (clientX - state.dragOffset.x - tabletRect.left) / state.scale;
-  const relativeY = (clientY - state.dragOffset.y - tabletRect.top) / state.scale;
-
-  // Clamp to bounds
-  const clamped = clampPosition(relativeX, relativeY);
-
-  // Update the active zone
-  if (state.activeZone === 'A') {
-    state.area.x = clamped.x;
-    state.area.y = clamped.y;
-    updateAreaDisplay();
-  } else {
-    state.areaB.x = clamped.x;
-    state.areaB.y = clamped.y;
-    updateAreaBDisplay();
-  }
-}
-
-/**
- * Handle drag end
- */
-function handleDragEnd() {
-  if (!state.isDragging) return;
-
-  state.isDragging = false;
-
-  const activeRect = state.activeZone === 'A' ? areaRectangle : areaRectangleB;
-  activeRect.classList.remove('dragging');
-
-  document.removeEventListener('mousemove', handleDragMove);
-  document.removeEventListener('mouseup', handleDragEnd);
-  document.removeEventListener('touchmove', handleDragMove);
-  document.removeEventListener('touchend', handleDragEnd);
-
-  // Notify change with active zone info
-  const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  if (onAreaChange) {
-    onAreaChange({ ...activeArea }, state.activeZone);
-  }
-
-  // Dispatch event
-  window.dispatchEvent(
-    new CustomEvent('area-changed', {
-      detail: { ...activeArea, zone: state.activeZone },
+  el.setAttribute(
+    'aria-label',
+    t('area.label', {
+      zone,
+      width: formatNumber(width, 1),
+      height: formatNumber(height, 1),
+      x: formatNumber(x, 1),
+      y: formatNumber(y, 1),
     })
   );
 }
 
+function renderAll() {
+  renderTablet();
+  renderArea('A');
+  renderArea('B');
+}
+
 /**
- * Handle context menu (right-click)
+ * Clamp a centre position so the area, rotation included, stays on the tablet
+ * @param {Object} area
+ * @param {number} x
+ * @param {number} y
+ * @returns {{x: number, y: number}}
  */
-function handleContextMenu(e) {
+function clampToTablet(area, x, y) {
+  return clampCentre(area, state.tablet, x, y);
+}
+
+/**
+ * Move the active zone and notify
+ * @param {number} x
+ * @param {number} y
+ * @param {boolean} commit - true when the gesture is over
+ */
+function moveActive(x, y, commit) {
+  const zone = state.activeZone;
+  const area = state.areas[zone];
+  const pos = clampToTablet(area, x, y);
+  area.x = pos.x;
+  area.y = pos.y;
+  renderArea(zone);
+  onAreaChange?.({ ...area }, zone, commit);
+}
+
+// ------------------------------------------------------------ pointer drag
+
+function handlePointerDown(e, zone) {
+  if (zone !== state.activeZone) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
   e.preventDefault();
-  showContextMenu(e.clientX, e.clientY);
+  const el = areaEls[zone];
+  const tabletRect = tabletBoundary.getBoundingClientRect();
+  const area = state.areas[zone];
+
+  // Offset between the pointer and the area centre, in millimetres
+  state.drag = {
+    pointerId: e.pointerId,
+    offsetX: (e.clientX - tabletRect.left) / state.scale - area.x,
+    offsetY: (e.clientY - tabletRect.top) / state.scale - area.y,
+    moved: false,
+  };
+  el.setPointerCapture(e.pointerId);
+  el.classList.add('is-dragging');
+  el.focus({ preventScroll: true });
 }
 
-/**
- * Show alignment context menu
- */
-function showContextMenu(x, y) {
-  if (!contextMenu) return;
-
-  contextMenu.classList.remove('hidden');
-
-  // Position menu
-  const menuRect = contextMenu.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-
-  let left = x;
-  let top = y;
-
-  // Adjust if menu would go off screen
-  if (x + menuRect.width > viewportWidth) {
-    left = viewportWidth - menuRect.width - 10;
-  }
-  if (y + menuRect.height > viewportHeight) {
-    top = viewportHeight - menuRect.height - 10;
-  }
-
-  contextMenu.style.left = `${left}px`;
-  contextMenu.style.top = `${top}px`;
+function handlePointerMove(e) {
+  const { drag } = state;
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const tabletRect = tabletBoundary.getBoundingClientRect();
+  const x = (e.clientX - tabletRect.left) / state.scale - drag.offsetX;
+  const y = (e.clientY - tabletRect.top) / state.scale - drag.offsetY;
+  drag.moved = true;
+  moveActive(x, y, false);
 }
 
-/**
- * Hide context menu
- */
-function hideContextMenu() {
-  if (contextMenu) {
-    contextMenu.classList.add('hidden');
+function handlePointerUp(e) {
+  const { drag } = state;
+  if (!drag || e.pointerId !== drag.pointerId) return;
+  const el = areaEls[state.activeZone];
+  el.classList.remove('is-dragging');
+  if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+  state.drag = null;
+  if (drag.moved) {
+    const area = state.areas[state.activeZone];
+    onAreaChange?.({ ...area }, state.activeZone, true);
   }
 }
 
+// --------------------------------------------------------------- keyboard
+
+function handleKeydown(e, zone) {
+  if (zone !== state.activeZone) return;
+  const step = KEYBOARD_STEP_MM * (e.shiftKey ? 10 : 1);
+  const moves = {
+    ArrowLeft: [-step, 0],
+    ArrowRight: [step, 0],
+    ArrowUp: [0, -step],
+    ArrowDown: [0, step],
+  };
+  const move = moves[e.key];
+  if (!move) return;
+  e.preventDefault();
+  const area = state.areas[zone];
+  moveActive(area.x + move[0], area.y + move[1], true);
+}
+
+// ------------------------------------------------------------- align menu
+
 /**
- * Align area to a specific position
+ * Align the active area to a position on the tablet
+ * @param {string} position - One of ALIGN_POSITIONS
  */
 export function alignArea(position) {
-  const activeArea = state.activeZone === 'A' ? state.area : state.areaB;
-  const { width: areaW, height: areaH } = activeArea;
-  const { width: tabletW, height: tabletH } = state.tablet;
+  const area = state.areas[state.activeZone];
+  const { halfW, halfH } = getHalfExtents(area);
+  const { width: tw, height: th } = state.tablet;
 
-  const halfW = areaW / 2;
-  const halfH = areaH / 2;
-
-  const positions = {
-    'top-left': { x: halfW, y: halfH },
-    top: { x: tabletW / 2, y: halfH },
-    'top-right': { x: tabletW - halfW, y: halfH },
-    left: { x: halfW, y: tabletH / 2 },
-    center: { x: tabletW / 2, y: tabletH / 2 },
-    right: { x: tabletW - halfW, y: tabletH / 2 },
-    'bottom-left': { x: halfW, y: tabletH - halfH },
-    bottom: { x: tabletW / 2, y: tabletH - halfH },
-    'bottom-right': { x: tabletW - halfW, y: tabletH - halfH },
-  };
-
-  const newPos = positions[position];
-  if (newPos) {
-    if (state.activeZone === 'A') {
-      state.area.x = newPos.x;
-      state.area.y = newPos.y;
-      updateAreaDisplay();
-    } else {
-      state.areaB.x = newPos.x;
-      state.areaB.y = newPos.y;
-      updateAreaBDisplay();
-    }
-
-    if (onAreaChange) {
-      onAreaChange({ ...activeArea, x: newPos.x, y: newPos.y }, state.activeZone);
-    }
-
-    window.dispatchEvent(
-      new CustomEvent('area-changed', {
-        detail: { ...activeArea, x: newPos.x, y: newPos.y, zone: state.activeZone },
-      })
-    );
-  }
-
-  hideContextMenu();
+  const col = position.includes('left') ? halfW : position.includes('right') ? tw - halfW : tw / 2;
+  const row = position.includes('top') ? halfH : position.includes('bottom') ? th - halfH : th / 2;
+  moveActive(col, row, true);
 }
 
-/**
- * Center the area
- */
-export function centerArea() {
-  alignArea('center');
-}
-
-/**
- * Create context menu HTML
- */
-function createContextMenu() {
+function createAlignMenu() {
   const menu = document.createElement('div');
-  menu.id = 'context-menu';
-  menu.className = 'context-menu hidden';
-
-  menu.innerHTML = `
-    <div class="context-menu-title">
-      ${icon('crosshairs')}
-      <span data-i18n="alignment.title">Area Positioning</span>
-    </div>
-    <div class="context-menu-grid">
-      <button data-align="top-left" title="Top Left">${icon('alignTopLeft')}</button>
-      <button data-align="top" title="Top">${icon('alignTop')}</button>
-      <button data-align="top-right" title="Top Right">${icon('alignTopRight')}</button>
-      <button data-align="left" title="Left">${icon('alignLeft')}</button>
-      <button data-align="center" title="Center">${icon('alignCenter')}</button>
-      <button data-align="right" title="Right">${icon('alignRight')}</button>
-      <button data-align="bottom-left" title="Bottom Left">${icon('alignBottomLeft')}</button>
-      <button data-align="bottom" title="Bottom">${icon('alignBottom')}</button>
-      <button data-align="bottom-right" title="Bottom Right">${icon('alignBottomRight')}</button>
-    </div>
-  `;
-
-  // Add click handlers
-  menu.querySelectorAll('[data-align]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      alignArea(btn.dataset.align);
-    });
-  });
-
+  menu.className = 'os-align';
+  menu.id = 'align-menu';
+  menu.hidden = true;
+  menu.setAttribute('role', 'dialog');
+  menu.setAttribute('aria-labelledby', 'align-menu-title');
   document.body.appendChild(menu);
+
+  menu.addEventListener('click', e => {
+    const btn = e.target.closest('[data-align]');
+    if (!btn) return;
+    alignArea(btn.dataset.align);
+    closeAlignMenu();
+  });
+  menu.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      closeAlignMenu();
+    }
+  });
   return menu;
 }
+
+function renderAlignMenu() {
+  alignMenu.innerHTML = `
+    <p class="ag-kicker" id="align-menu-title">${t('alignment.title')}</p>
+    <div class="os-align__grid">
+      ${ALIGN_POSITIONS.map(
+        pos => `<button class="ag-button ag-button--quiet" type="button" data-align="${pos}"
+          aria-label="${t(`alignment.${pos}`)}" title="${t(`alignment.${pos}`)}">${icon(ALIGN_ICONS[pos])}</button>`
+      ).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Open the align menu at a viewport position
+ * @param {number} x
+ * @param {number} y
+ * @param {HTMLElement|null} [returnFocus] - Element to focus on close
+ */
+export function openAlignMenu(x, y, returnFocus = null) {
+  if (!alignMenu) return;
+  renderAlignMenu();
+  alignMenu.hidden = false;
+  alignReturnFocus = returnFocus;
+
+  const rect = alignMenu.getBoundingClientRect();
+  const left = clamp(x, 8, window.innerWidth - rect.width - 8);
+  const top = clamp(y, 8, window.innerHeight - rect.height - 8);
+  alignMenu.style.left = `${left}px`;
+  alignMenu.style.top = `${top}px`;
+  alignMenu.querySelector('[data-align="center"]')?.focus();
+  alignReturnFocus?.setAttribute('aria-expanded', 'true');
+}
+
+export function closeAlignMenu() {
+  if (!alignMenu || alignMenu.hidden) return;
+  alignMenu.hidden = true;
+  alignReturnFocus?.setAttribute('aria-expanded', 'false');
+  alignReturnFocus?.focus();
+  alignReturnFocus = null;
+}
+
+export function isAlignMenuOpen() {
+  return Boolean(alignMenu && !alignMenu.hidden);
+}
+
+// ------------------------------------------------------------------- init
 
 /**
  * Initialize visualizer
  * @param {HTMLElement} containerEl - Container element
- * @param {Function} onChange - Callback when area changes
+ * @param {Function} [onChange] - (area, zone, commit) when the user moves an area
  */
 export function initVisualizer(containerEl, onChange = null) {
   container = containerEl;
   onAreaChange = onChange;
 
-  // Create structure
   container.innerHTML = `
-    <div class="visualizer-grid" id="visualizer-grid"></div>
-    <div class="tablet-boundary" id="tablet-boundary">
-      <div class="area-rectangle" id="area-rectangle"></div>
-      <div class="area-rectangle-b hidden" id="area-rectangle-b"></div>
-    </div>
-    <div class="visualizer-loading hidden" id="visualizer-loading">
-      <div class="spinner"></div>
+    <div class="os-tablet-boundary" id="tablet-boundary">
+      <div class="os-area" data-zone="A" role="group" aria-describedby="drag-hint"><span class="os-area__label" aria-hidden="true">A</span></div>
+      <div class="os-area" data-zone="B" role="group" aria-describedby="drag-hint" hidden><span class="os-area__label" aria-hidden="true">B</span></div>
     </div>
   `;
 
   tabletBoundary = container.querySelector('#tablet-boundary');
-  areaRectangle = container.querySelector('#area-rectangle');
-  areaRectangleB = container.querySelector('#area-rectangle-b');
-  gridElement = container.querySelector('#visualizer-grid');
+  areaEls.A = container.querySelector('[data-zone="A"]');
+  areaEls.B = container.querySelector('[data-zone="B"]');
 
-  // Create context menu
-  contextMenu = createContextMenu();
+  for (const zone of ['A', 'B']) {
+    const el = areaEls[zone];
+    el.addEventListener('pointerdown', e => handlePointerDown(e, zone));
+    el.addEventListener('pointermove', handlePointerMove);
+    el.addEventListener('pointerup', handlePointerUp);
+    el.addEventListener('pointercancel', handlePointerUp);
+    el.addEventListener('keydown', e => handleKeydown(e, zone));
+  }
 
-  // Event listeners for Zone A
-  areaRectangle.addEventListener('mousedown', e => {
-    if (state.comparisonMode && state.activeZone !== 'A') return;
-    handleDragStart(e);
+  alignMenu = createAlignMenu();
+  container.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    openAlignMenu(e.clientX, e.clientY, areaEls[state.activeZone]);
   });
-  areaRectangle.addEventListener(
-    'touchstart',
-    e => {
-      if (state.comparisonMode && state.activeZone !== 'A') return;
-      handleDragStart(e);
-    },
-    { passive: false }
-  );
-
-  // Event listeners for Zone B
-  areaRectangleB.addEventListener('mousedown', e => {
-    if (state.activeZone !== 'B') return;
-    handleDragStart(e);
-  });
-  areaRectangleB.addEventListener(
-    'touchstart',
-    e => {
-      if (state.activeZone !== 'B') return;
-      handleDragStart(e);
-    },
-    { passive: false }
-  );
-
-  container.addEventListener('contextmenu', handleContextMenu);
-
-  // Close context menu on click outside
-  document.addEventListener('click', e => {
-    if (!contextMenu.contains(e.target)) {
-      hideContextMenu();
+  document.addEventListener('pointerdown', e => {
+    if (isAlignMenuOpen() && !alignMenu.contains(e.target) && !e.target.closest('#align-area')) {
+      alignMenu.hidden = true;
+      alignReturnFocus?.setAttribute('aria-expanded', 'false');
+      alignReturnFocus = null;
     }
   });
 
-  // Handle resize with throttle for performance
-  const throttledResize = throttle(() => {
-    invalidateCache();
-    updateTabletDisplay();
-    updateAreaDisplay();
-    updateAreaBDisplay();
-  }, RESIZE_THROTTLE_DELAY);
-
-  const resizeObserver = new ResizeObserver(throttledResize);
+  let frame = 0;
+  const resizeObserver = new ResizeObserver(() => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(renderAll);
+  });
   resizeObserver.observe(container);
 
-  // Initial display
-  updateTabletDisplay();
-  updateAreaDisplay();
-  updateAreaBDisplay();
+  renderAll();
 }
 
 /**
@@ -526,50 +380,23 @@ export function initVisualizer(containerEl, onChange = null) {
 export function setTablet(width, height) {
   state.tablet.width = width;
   state.tablet.height = height;
-  updateTabletDisplay();
-  updateAreaDisplay();
+  renderAll();
 }
 
 /**
- * Update area properties
+ * Update zone A
  */
 export function setArea(area) {
-  state.area = { ...state.area, ...area };
-  updateAreaDisplay();
+  Object.assign(state.areas.A, area);
+  renderArea('A');
 }
 
 /**
- * Update area B properties (comparison mode)
+ * Update zone B (comparison mode)
  */
 export function setAreaB(area) {
-  state.areaB = { ...state.areaB, ...area };
-  updateAreaBDisplay();
-}
-
-/**
- * Set area radius
- */
-export function setAreaRadius(radius) {
-  if (state.activeZone === 'A') {
-    state.area.radius = radius;
-    updateAreaDisplay();
-  } else {
-    state.areaB.radius = radius;
-    updateAreaBDisplay();
-  }
-}
-
-/**
- * Set area rotation
- */
-export function setAreaRotation(rotation) {
-  if (state.activeZone === 'A') {
-    state.area.rotation = rotation;
-    updateAreaDisplay();
-  } else {
-    state.areaB.rotation = rotation;
-    updateAreaBDisplay();
-  }
+  Object.assign(state.areas.B, area);
+  renderArea('B');
 }
 
 /**
@@ -577,8 +404,8 @@ export function setAreaRotation(rotation) {
  */
 export function setComparisonMode(enabled) {
   state.comparisonMode = enabled;
-  updateAreaDisplay();
-  updateAreaBDisplay();
+  renderArea('A');
+  renderArea('B');
 }
 
 /**
@@ -586,15 +413,8 @@ export function setComparisonMode(enabled) {
  */
 export function setActiveZone(zone) {
   state.activeZone = zone;
-  updateAreaDisplay();
-  updateAreaBDisplay();
-}
-
-/**
- * Get current active zone
- */
-export function getActiveZone() {
-  return state.activeZone;
+  renderArea('A');
+  renderArea('B');
 }
 
 /**
@@ -602,36 +422,14 @@ export function getActiveZone() {
  */
 export function setGridVisible(visible) {
   state.gridVisible = visible;
-  if (gridElement) {
-    gridElement.classList.toggle('hidden', !visible);
-  }
+  renderTablet();
 }
 
 /**
- * Get current state
+ * Re-render labels after a language change
  */
-export function getState() {
-  return {
-    tablet: { ...state.tablet },
-    area: { ...state.area },
-    areaB: { ...state.areaB },
-    comparisonMode: state.comparisonMode,
-    activeZone: state.activeZone,
-  };
-}
-
-/**
- * Show loading overlay
- */
-export function showLoading() {
-  const loading = container?.querySelector('#visualizer-loading');
-  if (loading) loading.classList.remove('hidden');
-}
-
-/**
- * Hide loading overlay
- */
-export function hideLoading() {
-  const loading = container?.querySelector('#visualizer-loading');
-  if (loading) loading.classList.add('hidden');
+export function refreshVisualizerLabels() {
+  renderArea('A');
+  renderArea('B');
+  if (isAlignMenuOpen()) renderAlignMenu();
 }

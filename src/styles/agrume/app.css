@@ -1,0 +1,372 @@
+/*
+ * Agrume v3 · app (optional). Copy verbatim, after components.css, in a site
+ * with application pages (FM): page head, ruled sections, segmented control,
+ * tabs, fields, table, notes, skeleton, load more. Showcase pages do not
+ * need it.
+ */
+
+.ag-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ag-space-4) var(--ag-space-7);
+  padding-block: var(--ag-space-7) var(--ag-space-5);
+}
+.ag-page-head__copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--ag-space-2);
+}
+.ag-page-head__title {
+  font: 600 clamp(2.5rem, 4.4vw, 4.25rem) / 0.92 var(--ag-font-title);
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+.ag-page-head__lead {
+  max-width: 62ch;
+  color: var(--ag-muted);
+  font-size: var(--ag-text-md);
+}
+
+/* Section: the product's only container. An ink rule, a head, the content. */
+.ag-section {
+  min-width: 0;
+  border-top: var(--ag-border-rule) solid var(--ag-ink);
+  padding-top: var(--ag-space-3);
+}
+.ag-section--quiet {
+  border-top: var(--ag-border-hair) solid var(--ag-rule-strong);
+}
+.ag-section--bare {
+  border-top: 0;
+  padding-top: 0;
+}
+.ag-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ag-space-2) var(--ag-space-5);
+  margin-bottom: var(--ag-space-4);
+}
+.ag-section__title {
+  font: 600 var(--ag-text-2xl) / 1 var(--ag-font-title);
+}
+.ag-section--quiet .ag-section__title {
+  font: 600 var(--ag-text-lg) / 1.2 var(--ag-font-sans);
+}
+.ag-section__heading {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.ag-section__titleline,
+.ag-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ag-space-2) var(--ag-space-4);
+}
+.ag-section__note {
+  max-width: 60ch;
+  color: var(--ag-muted);
+  font-size: var(--ag-text-sm);
+}
+
+/* Segmented: one choice among a few, buttons with aria-pressed. */
+.ag-segmented {
+  display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+  border: var(--ag-border-hair) solid var(--ag-ink);
+  scrollbar-width: none;
+}
+.ag-segmented--quiet {
+  border-color: var(--ag-rule-strong);
+}
+.ag-segmented__item {
+  flex: none;
+  min-height: 32px;
+  border: 0;
+  border-left: var(--ag-border-hair) solid var(--ag-rule-strong);
+  padding: 0 var(--ag-space-3);
+  background: transparent;
+  color: var(--ag-muted);
+  font: 600 var(--ag-text-sm) / 1 var(--ag-font-sans);
+  white-space: nowrap;
+}
+.ag-segmented__item:first-child {
+  border-left: 0;
+}
+.ag-segmented__item:hover {
+  background: var(--ag-surface);
+  color: var(--ag-ink);
+}
+.ag-segmented__item:is([aria-pressed="true"], [aria-current="page"]) {
+  background: var(--ag-ink);
+  color: var(--ag-on-inverse);
+}
+.ag-segmented__item:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Tabs: sibling pages, links with aria-current="page". When they overflow, a
+   thin rule-coloured scrollbar shows below the rule. The rule is a scrolling
+   background line, so the current mark stays on it above the scrollbar (a
+   real border in forced colours). */
+.ag-tabs {
+  display: flex;
+  gap: var(--ag-space-5);
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: linear-gradient(var(--ag-rule-strong), var(--ag-rule-strong)) left bottom / 100% var(--ag-border-hair) no-repeat local;
+  scrollbar-color: var(--ag-rule-strong) transparent;
+  scrollbar-width: thin;
+}
+@media (forced-colors: active) {
+  .ag-tabs {
+    border-bottom: var(--ag-border-hair) solid CanvasText;
+  }
+}
+.ag-tabs__item {
+  display: inline-flex;
+  flex: none;
+  min-height: 40px;
+  align-items: center;
+  border-bottom: var(--ag-border-mark) solid transparent;
+  color: var(--ag-muted);
+  font: 600 var(--ag-text-md) / 1 var(--ag-font-sans);
+  text-decoration: none;
+}
+.ag-tabs__item:hover {
+  color: var(--ag-ink);
+}
+.ag-tabs__item[aria-current="page"] {
+  border-bottom-color: var(--ag-identity);
+  color: var(--ag-ink);
+}
+
+/* Fields. A native checkbox drawn as an ink square; the whole row is the target. */
+.ag-field {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+.ag-field__label {
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+  font-weight: 600;
+}
+.ag-field__hint {
+  color: var(--ag-faint);
+  font-size: var(--ag-text-xs);
+}
+.ag-field__error {
+  color: var(--ag-danger);
+  font-size: var(--ag-text-xs);
+}
+.ag-input,
+.ag-select {
+  width: 100%;
+  min-height: var(--ag-control-h);
+  border: var(--ag-border-hair) solid var(--ag-rule-strong);
+  border-radius: 0;
+  padding: 0 var(--ag-space-3);
+  background: var(--ag-paper);
+  color: var(--ag-ink);
+  font-size: var(--ag-text-sm);
+}
+.ag-input:hover,
+.ag-select:hover {
+  border-color: var(--ag-muted);
+}
+.ag-input:focus,
+.ag-select:focus {
+  border-color: var(--ag-ink);
+}
+.ag-input::placeholder {
+  color: var(--ag-faint);
+  opacity: 1;
+}
+.ag-check {
+  position: relative;
+  display: grid;
+  min-height: var(--ag-target);
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--ag-space-3);
+  border-bottom: var(--ag-border-hair) solid var(--ag-rule);
+  padding-block: var(--ag-space-3);
+  cursor: pointer;
+}
+.ag-check input {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  opacity: 0;
+}
+.ag-check__box {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1.5px solid var(--ag-ink);
+  background: var(--ag-paper);
+}
+.ag-check input:checked + .ag-check__box {
+  background: var(--ag-ink);
+}
+.ag-check input:checked + .ag-check__box::after {
+  width: 10px;
+  height: 5px;
+  margin-top: -3px;
+  border-bottom: 2px solid var(--ag-on-inverse);
+  border-left: 2px solid var(--ag-on-inverse);
+  content: "";
+  transform: rotate(-45deg);
+}
+.ag-check input:focus-visible + .ag-check__box {
+  outline: 2px solid var(--ag-focus);
+  outline-offset: 2px;
+}
+.ag-check__text {
+  display: grid;
+  gap: 2px;
+}
+.ag-check__label {
+  font-weight: 600;
+}
+.ag-check__hint {
+  color: var(--ag-muted);
+  font-size: var(--ag-text-sm);
+}
+
+/* Table: mono heads, tabular numbers right-aligned, row hover. */
+.ag-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.ag-table {
+  width: 100%;
+  font-size: var(--ag-text-sm);
+}
+.ag-table caption {
+  padding-bottom: var(--ag-space-2);
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+  text-align: left;
+}
+.ag-table th,
+.ag-table td {
+  border-bottom: var(--ag-border-hair) solid var(--ag-rule);
+  padding: 8px var(--ag-space-3) 8px 0;
+  text-align: left;
+}
+.ag-table thead th {
+  border-bottom-color: var(--ag-ink);
+  padding-block: 6px;
+  color: var(--ag-muted);
+  font: 500 var(--ag-text-2xs) / 1.3 var(--ag-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.ag-table tbody th {
+  font-weight: 400;
+}
+.ag-table :is(th, td):last-child {
+  padding-right: 0;
+}
+.ag-table .is-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.ag-table tbody tr:hover {
+  background: var(--ag-surface);
+}
+.ag-table th[aria-sort] {
+  color: var(--ag-ink);
+}
+.ag-table__sort {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+.ag-table__sort::after {
+  content: " ↕";
+  opacity: 0.4;
+}
+[aria-sort="descending"] .ag-table__sort::after {
+  content: " ↓";
+  opacity: 1;
+}
+[aria-sort="ascending"] .ag-table__sort::after {
+  content: " ↑";
+  opacity: 1;
+}
+
+/* Notes: label / value pairs on hairlines. */
+.ag-notes {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+  font-size: var(--ag-text-sm);
+}
+.ag-notes > div {
+  display: contents;
+}
+.ag-notes :is(dt, dd) {
+  border-bottom: var(--ag-border-hair) solid var(--ag-rule);
+  padding-block: 7px;
+}
+.ag-notes dt {
+  padding-right: var(--ag-space-4);
+  color: var(--ag-muted);
+}
+.ag-notes dd {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ag-skeleton {
+  display: block;
+  height: var(--ag-skeleton-h, 1em);
+  background: linear-gradient(90deg, var(--ag-surface-sunken) 40%, var(--ag-surface) 50%, var(--ag-surface-sunken) 60%)
+    0 0 / 300% 100%;
+  animation: ag-shimmer 1.6s linear infinite;
+}
+.ag-skeleton-group {
+  display: grid;
+  gap: var(--ag-space-3);
+}
+@keyframes ag-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+.ag-more {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-space-3);
+  padding-top: var(--ag-space-4);
+  color: var(--ag-faint);
+  font-size: var(--ag-text-xs);
+}
+
+@media (pointer: coarse) {
+  .ag-segmented__item,
+  .ag-input,
+  .ag-select {
+    min-height: var(--ag-target);
+  }
+}

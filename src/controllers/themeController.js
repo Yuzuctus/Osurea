@@ -1,66 +1,68 @@
 /**
  * Osu!rea - Theme Controller
- * Handles dark/light theme switching and persistence
+ * Agrume convention: <html data-theme> only when the user chose a theme,
+ * otherwise the system preference decides. public/theme-init.js applies the
+ * stored choice before the first paint.
  * @module controllers/themeController
  */
 
-import { getTheme, setTheme as saveTheme } from '../modules/storage.js';
-import { icon } from '../modules/icons.js';
+import { getTheme, setTheme } from '../modules/storage.js';
+import { t } from '../modules/i18n.js';
+
+/** Paper colour of each theme, for <meta name="theme-color"> */
+const THEME_COLORS = { light: '#f3f6ea', dark: '#131c17' };
+
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 /**
- * @typedef {Object} ThemeElements
- * @property {HTMLElement|null} themeBtn - Theme toggle button
+ * The theme currently shown, chosen or inherited from the system
+ * @returns {'dark'|'light'}
  */
-
-/**
- * Initialize theme from storage and apply to document
- */
-export function initTheme() {
-  const theme = getTheme();
-  document.documentElement.dataset.theme = theme;
+export function getEffectiveTheme() {
+  const chosen = document.documentElement.dataset.theme;
+  if (chosen === 'light' || chosen === 'dark') return chosen;
+  return darkQuery.matches ? 'dark' : 'light';
 }
 
 /**
- * Get the current theme
- * @returns {'dark'|'light'} Current theme
+ * Point the browser chrome colour at the chosen theme
+ * @param {'dark'|'light'|null} theme
  */
-export function getCurrentTheme() {
-  return getTheme();
+function updateThemeColor(theme) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+    const scheme = meta.media.includes('dark') ? 'dark' : 'light';
+    meta.content = THEME_COLORS[theme ?? scheme];
+  });
 }
 
 /**
- * Update theme toggle button icon
- * @param {HTMLElement|null} themeBtn - Theme toggle button element
+ * Label the toggle with the theme it switches to
+ * @param {HTMLElement|null} button
  */
-export function updateThemeIcon(themeBtn) {
-  if (themeBtn) {
-    const theme = getTheme();
-    themeBtn.innerHTML = icon(theme === 'dark' ? 'moon' : 'sun');
-  }
+export function updateThemeToggle(button) {
+  if (!button) return;
+  const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+  button.textContent = t(next === 'dark' ? 'theme.dark' : 'theme.light');
+  button.setAttribute('aria-label', t(next === 'dark' ? 'theme.toDark' : 'theme.toLight'));
 }
 
 /**
- * Toggle between dark and light theme
- * @param {HTMLElement|null} themeBtn - Theme toggle button element
+ * Wire the theme toggle
+ * @param {HTMLElement|null} button
  */
-export function toggleTheme(themeBtn) {
-  const current = getTheme();
-  const next = current === 'dark' ? 'light' : 'dark';
-  saveTheme(next);
-  document.documentElement.dataset.theme = next;
-  updateThemeIcon(themeBtn);
-}
+export function setupThemeToggle(button) {
+  if (!button) return;
+  updateThemeColor(getTheme());
+  updateThemeToggle(button);
 
-/**
- * Setup theme toggle event listener
- * @param {HTMLElement|null} themeBtn - Theme toggle button element
- */
-export function setupThemeToggle(themeBtn) {
-  if (!themeBtn) return;
+  button.addEventListener('click', () => {
+    const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    setTheme(next);
+    updateThemeColor(next);
+    updateThemeToggle(button);
+  });
 
-  // Set initial icon
-  updateThemeIcon(themeBtn);
-
-  // Add click listener
-  themeBtn.addEventListener('click', () => toggleTheme(themeBtn));
+  // Without an explicit choice, follow the system live
+  darkQuery.addEventListener('change', () => updateThemeToggle(button));
 }

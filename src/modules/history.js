@@ -1,205 +1,124 @@
 /**
  * Osu!rea - History Module
- * Undo/Redo functionality for area modifications
+ * Undo/redo for area modifications. One history per zone, so undoing in
+ * zone B never replays a change made to zone A.
+ * @module history
  */
 
 import { MAX_HISTORY_SIZE } from '../constants/index.js';
 
-/**
- * @typedef {Object} HistoryEntry
- * @property {Object} area - Area state snapshot
- * @property {number} timestamp - When this entry was created
- */
-
-/** @type {HistoryEntry[]} */
-let past = [];
-
-/** @type {HistoryEntry[]} */
-let future = [];
-
-/** @type {Set<Function>} */
-const subscribers = new Set();
+const AREA_KEYS = ['x', 'y', 'width', 'height', 'radius', 'rotation'];
 
 /**
- * Create a snapshot of the area state
- * @param {Object} area - Area object
- * @returns {HistoryEntry}
- */
-function createSnapshot(area) {
-  return {
-    area: { ...area },
-    timestamp: Date.now(),
-  };
-}
-
-/**
- * Push a new state to the history
- * @param {Object} area - Current area state to save
- */
-export function pushState(area) {
-  // Don't push if the state is the same as the last one
-  if (past.length > 0) {
-    const lastEntry = past[past.length - 1];
-    if (
-      lastEntry.area.x === area.x &&
-      lastEntry.area.y === area.y &&
-      lastEntry.area.width === area.width &&
-      lastEntry.area.height === area.height &&
-      lastEntry.area.radius === area.radius &&
-      lastEntry.area.rotation === area.rotation
-    ) {
-      return;
-    }
-  }
-
-  past.push(createSnapshot(area));
-
-  // Limit history size
-  if (past.length > MAX_HISTORY_SIZE) {
-    past.shift();
-  }
-
-  // Clear future when new action is taken
-  future = [];
-
-  notifySubscribers();
-}
-
-/**
- * Undo the last action
- * @param {Object} currentArea - Current area state before undo
- * @returns {Object|null} - Previous area state or null if can't undo
- */
-export function undo(currentArea) {
-  if (past.length === 0) {
-    return null;
-  }
-
-  // Save current state to future
-  future.push(createSnapshot(currentArea));
-
-  // Get previous state
-  const previousEntry = past.pop();
-
-  notifySubscribers();
-
-  return previousEntry.area;
-}
-
-/**
- * Redo the last undone action
- * @param {Object} currentArea - Current area state before redo
- * @returns {Object|null} - Next area state or null if can't redo
- */
-export function redo(currentArea) {
-  if (future.length === 0) {
-    return null;
-  }
-
-  // Save current state to past
-  past.push(createSnapshot(currentArea));
-
-  // Get next state
-  const nextEntry = future.pop();
-
-  notifySubscribers();
-
-  return nextEntry.area;
-}
-
-/**
- * Check if undo is available
- * @returns {boolean}
- */
-export function canUndo() {
-  return past.length > 0;
-}
-
-/**
- * Check if redo is available
- * @returns {boolean}
- */
-export function canRedo() {
-  return future.length > 0;
-}
-
-/**
- * Clear all history
- */
-export function clearHistory() {
-  past = [];
-  future = [];
-  notifySubscribers();
-}
-
-/**
- * Get history info for debugging/UI
+ * Copy the fields of an area that history tracks.
+ * @param {Object} area
  * @returns {Object}
  */
-export function getHistoryInfo() {
+function snapshot(area) {
+  const copy = {};
+  for (const key of AREA_KEYS) copy[key] = area[key] ?? 0;
+  return copy;
+}
+
+/**
+ * @param {Object} a
+ * @param {Object} b
+ * @returns {boolean}
+ */
+function sameArea(a, b) {
+  return AREA_KEYS.every(key => (a[key] ?? 0) === (b[key] ?? 0));
+}
+
+/**
+ * Create an undo/redo history.
+ *
+ * `push` records the state reached after a change. The latest entry is the
+ * current state, so `undo` returns the entry before it.
+ *
+ * @param {number} [limit=MAX_HISTORY_SIZE]
+ */
+export function createHistory(limit = MAX_HISTORY_SIZE) {
+  let past = [];
+  let future = [];
+
   return {
-    pastCount: past.length,
-    futureCount: future.length,
-    canUndo: canUndo(),
-    canRedo: canRedo(),
+    /** @param {Object} area - State reached after a change */
+    push(area) {
+      const entry = snapshot(area);
+      if (past.length > 0 && sameArea(past[past.length - 1], entry)) return;
+      past.push(entry);
+      if (past.length > limit) past.shift();
+      future = [];
+    },
+
+    /** @returns {Object|null} - Previous area state, or null */
+    undo() {
+      if (past.length < 2) return null;
+      future.push(past.pop());
+      return { ...past[past.length - 1] };
+    },
+
+    /** @returns {Object|null} - Next area state, or null */
+    redo() {
+      if (future.length === 0) return null;
+      const next = future.pop();
+      past.push(next);
+      return { ...next };
+    },
+
+    canUndo() {
+      return past.length > 1;
+    },
+
+    canRedo() {
+      return future.length > 0;
+    },
+
+    clear() {
+      past = [];
+      future = [];
+    },
   };
 }
 
 /**
- * Subscribe to history changes
- * @param {Function} callback - Function to call when history changes
- * @returns {Function} - Unsubscribe function
+ * Whether a keyboard event comes from a field that has its own undo.
+ * @param {EventTarget|null} target
+ * @returns {boolean}
  */
-export function subscribeToHistory(callback) {
-  subscribers.add(callback);
-  return () => subscribers.delete(callback);
+function isEditableTarget(target) {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  if (target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return true;
+  if (target instanceof HTMLInputElement) {
+    return !['range', 'checkbox', 'radio', 'button'].includes(target.type);
+  }
+  return false;
 }
 
 /**
- * Notify subscribers of history change
- */
-function notifySubscribers() {
-  const info = getHistoryInfo();
-  subscribers.forEach(callback => {
-    try {
-      callback(info);
-    } catch (error) {
-      console.error('History subscriber error:', error);
-    }
-  });
-}
-
-/**
- * Initialize keyboard shortcuts for undo/redo
- * @param {Function} onUndo - Callback when undo is triggered
- * @param {Function} onRedo - Callback when redo is triggered
- * @returns {Function} - Cleanup function to remove listeners
+ * Initialize keyboard shortcuts for undo/redo:
+ * Ctrl/Cmd + Z, and Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y.
+ * Text fields keep their own undo; an open dialog disables the shortcuts.
+ * @param {Function} onUndo
+ * @param {Function} onRedo
+ * @returns {Function} - Cleanup function
  */
 export function initKeyboardShortcuts(onUndo, onRedo) {
   const handleKeydown = e => {
-    // Check for Ctrl/Cmd + Z (Undo)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (isEditableTarget(e.target) || document.querySelector('dialog[open]')) return;
+
+    const key = e.key.toLowerCase();
+    if (key === 'z' && !e.shiftKey) {
       e.preventDefault();
-      if (canUndo()) {
-        onUndo();
-      }
-    }
-    // Check for Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y (Redo)
-    else if (
-      ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
-      ((e.ctrlKey || e.metaKey) && e.key === 'y')
-    ) {
+      onUndo();
+    } else if ((key === 'z' && e.shiftKey) || key === 'y') {
       e.preventDefault();
-      if (canRedo()) {
-        onRedo();
-      }
+      onRedo();
     }
   };
 
   document.addEventListener('keydown', handleKeydown);
-
-  // Return cleanup function
-  return () => {
-    document.removeEventListener('keydown', handleKeydown);
-  };
+  return () => document.removeEventListener('keydown', handleKeydown);
 }

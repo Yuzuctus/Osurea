@@ -1,11 +1,14 @@
 /**
  * Osu!rea - Area Controller
- * Handles area manipulation, dimension updates, and position clamping
+ * Pure area maths on the app state: dimensions, ratio lock, position,
+ * radius, rotation. The caller renders the result.
  * @module controllers/areaController
  */
 
-import { clamp, getActiveArea, getActiveLockedRatio, syncActiveArea, formatNumber, calculateRatioString } from '../modules/utils.js';
-import { setArea, setAreaB, setAreaRadius, setAreaRotation } from '../modules/visualizer.js';
+import { clamp, clampCentre, getActiveArea } from '../modules/utils.js';
+
+/** Smallest area side, in mm */
+export const MIN_AREA_SIZE = 1;
 
 /**
  * Snap value to nearest snap point if within threshold
@@ -24,229 +27,188 @@ export function snapToPoint(value, snapPoints, threshold = 5) {
 }
 
 /**
- * Clamp area position within tablet bounds
- * @param {import('../modules/utils.js').AppState} state - App state
+ * Resolve a zone to its area object
+ * @param {import('../modules/utils.js').AppState} state
+ * @param {'A'|'B'} [zone] - Defaults to the active zone
  */
+function areaOf(state, zone) {
+  if (!zone) return getActiveArea(state);
+  return zone === 'A' ? state.area : state.areaB;
+}
+
 /**
- * Clamp area position within tablet bounds
+ * Clamp area position so the area, rotation included, stays on the tablet
  * @param {import('../modules/utils.js').AppState} state - App state
- * @param {'A'|'B'} [zone] - Optional zone override (defaults to activeZone)
+ * @param {'A'|'B'} [zone] - Optional zone (defaults to activeZone)
  */
 export function clampAreaPosition(state, zone) {
   if (!state.tablet) return;
+  const area = areaOf(state, zone);
+  Object.assign(area, clampCentre(area, state.tablet));
+}
 
-  const area = zone
-    ? (zone === 'A' ? state.area : state.areaB)
-    : getActiveArea(state);
-  const halfW = area.width / 2;
-  const halfH = area.height / 2;
+/**
+ * Shrink an area that no longer fits its tablet (keeping its ratio when
+ * the ratio is locked), then clamp its position.
+ * @param {import('../modules/utils.js').AppState} state
+ * @param {'A'|'B'} [zone]
+ */
+export function fitAreaToTablet(state, zone) {
+  if (!state.tablet) return;
+  const area = areaOf(state, zone);
+  const { width: tw, height: th } = state.tablet;
 
-  area.x = clamp(area.x, halfW, state.tablet.width - halfW);
-  area.y = clamp(area.y, halfH, state.tablet.height - halfH);
+  if (state.lockRatio) {
+    const factor = Math.min(1, tw / area.width, th / area.height);
+    area.width *= factor;
+    area.height *= factor;
+  } else {
+    area.width = Math.min(area.width, tw);
+    area.height = Math.min(area.height, th);
+  }
+  clampAreaPosition(state, zone);
 }
 
 /**
  * Center the area within the tablet
- * @param {import('../modules/utils.js').AppState} state - App state
- * @param {Object} callbacks - Callback functions
- * @param {Function} callbacks.onUpdate - Called after update with activeArea
+ * @param {import('../modules/utils.js').AppState} state
+ * @param {'A'|'B'} [zone]
  */
-export function centerArea(state, callbacks = {}) {
+export function centerArea(state, zone) {
   if (!state.tablet) return;
-
-  const activeArea = getActiveArea(state);
-  activeArea.x = state.tablet.width / 2;
-  activeArea.y = state.tablet.height / 2;
-
-  syncActiveArea(state, setArea, setAreaB);
-  
-  if (callbacks.onUpdate) {
-    callbacks.onUpdate(activeArea);
-  }
+  const area = areaOf(state, zone);
+  area.x = state.tablet.width / 2;
+  area.y = state.tablet.height / 2;
 }
 
 /**
- * Set area to full tablet size (respecting locked ratio if enabled)
- * @param {import('../modules/utils.js').AppState} state - App state
- * @param {Object} callbacks - Callback functions
- * @param {Function} callbacks.onUpdate - Called after update
+ * Set area to full tablet size. With the ratio locked, the area keeps its
+ * current ratio and grows to the largest size that fits.
+ * @param {import('../modules/utils.js').AppState} state
  */
-export function setFullArea(state, callbacks = {}) {
+export function setFullArea(state) {
   if (!state.tablet) return;
-
-  const activeArea = getActiveArea(state);
+  const area = getActiveArea(state);
+  const { width: tw, height: th } = state.tablet;
 
   if (state.lockRatio) {
-    const targetRatio = getActiveLockedRatio(state);
-    const tabletRatio = state.tablet.width / state.tablet.height;
-
-    if (tabletRatio > targetRatio) {
-      activeArea.height = state.tablet.height;
-      activeArea.width = activeArea.height * targetRatio;
+    const ratio = area.width / area.height;
+    if (tw / th > ratio) {
+      area.height = th;
+      area.width = th * ratio;
     } else {
-      activeArea.width = state.tablet.width;
-      activeArea.height = activeArea.width / targetRatio;
+      area.width = tw;
+      area.height = tw / ratio;
     }
   } else {
-    activeArea.width = state.tablet.width;
-    activeArea.height = state.tablet.height;
+    area.width = tw;
+    area.height = th;
   }
-
-  activeArea.x = state.tablet.width / 2;
-  activeArea.y = state.tablet.height / 2;
-
-  syncActiveArea(state, setArea, setAreaB);
-
-  if (callbacks.onUpdate) {
-    callbacks.onUpdate(activeArea);
-  }
+  centerArea(state);
 }
 
 /**
- * Update area dimensions from width/height values
- * @param {import('../modules/utils.js').AppState} state - App state
- * @param {number} width - New width
- * @param {number} height - New height
- * @param {Object} callbacks - Callback functions
+ * Update area dimensions. With the ratio locked, the edited side drives the
+ * other one, using the area's current ratio.
+ * @param {import('../modules/utils.js').AppState} state
+ * @param {number} width
+ * @param {number} height
+ * @param {'width'|'height'} [changed='width'] - The side the user edited
  */
-export function updateAreaDimensions(state, width, height, callbacks = {}) {
+export function updateAreaDimensions(state, width, height, changed = 'width') {
   if (!state.tablet) return;
+  const area = getActiveArea(state);
+  const { width: tw, height: th } = state.tablet;
 
-  const activeArea = getActiveArea(state);
+  let w = clamp(width, MIN_AREA_SIZE, tw);
+  let h = clamp(height, MIN_AREA_SIZE, th);
 
-  // Clamp to tablet bounds
-  let newWidth = clamp(width, 1, state.tablet.width);
-  let newHeight = clamp(height, 1, state.tablet.height);
-
-  // Keep aspect ratio if locked
   if (state.lockRatio) {
-    const targetRatio = getActiveLockedRatio(state);
-    newHeight = newWidth / targetRatio;
-    if (newHeight > state.tablet.height) {
-      newHeight = state.tablet.height;
-      newWidth = newHeight * targetRatio;
+    const ratio = area.width / area.height;
+    if (changed === 'height') {
+      w = h * ratio;
+      if (w > tw) {
+        w = tw;
+        h = w / ratio;
+      }
+    } else {
+      h = w / ratio;
+      if (h > th) {
+        h = th;
+        w = h * ratio;
+      }
     }
   }
 
-  activeArea.width = newWidth;
-  activeArea.height = newHeight;
-
+  area.width = w;
+  area.height = h;
   clampAreaPosition(state);
-  syncActiveArea(state, setArea, setAreaB);
-
-  if (callbacks.onUpdate) {
-    callbacks.onUpdate(activeArea);
-  }
 }
 
 /**
- * Update area position from x/y values
- * @param {import('../modules/utils.js').AppState} state - App state
- * @param {number} x - New X position
- * @param {number} y - New Y position
- * @param {Object} callbacks - Callback functions
+ * Update area position (center) from x/y values
+ * @param {import('../modules/utils.js').AppState} state
+ * @param {number} x
+ * @param {number} y
  */
-export function updateAreaPosition(state, x, y, callbacks = {}) {
+export function updateAreaPosition(state, x, y) {
   if (!state.tablet) return;
-
-  const activeArea = getActiveArea(state);
-  activeArea.x = x;
-  activeArea.y = y;
-
+  const area = getActiveArea(state);
+  area.x = x;
+  area.y = y;
   clampAreaPosition(state);
-  syncActiveArea(state, setArea, setAreaB);
-
-  if (callbacks.onUpdate) {
-    callbacks.onUpdate(activeArea);
-  }
 }
 
 /**
  * Update area radius
- * @param {import('../modules/utils.js').AppState} state - App state
+ * @param {import('../modules/utils.js').AppState} state
  * @param {number} radius - New radius (0-100)
  * @param {boolean} snap - Whether to snap to key points
  * @returns {number} - The final radius value (possibly snapped)
  */
 export function updateRadius(state, radius, snap = false) {
-  let finalRadius = clamp(radius, 0, 100);
-
-  if (snap) {
-    finalRadius = snapToPoint(finalRadius, [0, 50, 100], 2);
-  }
-
-  const activeArea = getActiveArea(state);
-  activeArea.radius = finalRadius;
-  setAreaRadius(finalRadius);
-
+  let finalRadius = clamp(Math.round(radius), 0, 100);
+  if (snap) finalRadius = snapToPoint(finalRadius, [0, 50, 100], 2);
+  getActiveArea(state).radius = finalRadius;
   return finalRadius;
 }
 
 /**
  * Update area rotation
- * @param {import('../modules/utils.js').AppState} state - App state
+ * @param {import('../modules/utils.js').AppState} state
  * @param {number} rotation - New rotation (-180 to 180)
  * @param {boolean} snap - Whether to snap to key angles
  * @returns {number} - The final rotation value (possibly snapped)
  */
 export function updateRotation(state, rotation, snap = false) {
-  let finalRotation = clamp(rotation, -180, 180);
-
-  if (snap) {
-    finalRotation = snapToPoint(finalRotation, [-180, -90, 0, 90, 180], 2);
-  }
-
-  const activeArea = getActiveArea(state);
-  activeArea.rotation = finalRotation;
-  setAreaRotation(finalRotation);
-
+  let finalRotation = clamp(Math.round(rotation), -180, 180);
+  if (snap) finalRotation = snapToPoint(finalRotation, [-180, -90, 0, 90, 180], 2);
+  getActiveArea(state).rotation = finalRotation;
+  clampAreaPosition(state);
   return finalRotation;
 }
 
 /**
- * Apply a preset ratio to the active area
- * @param {import('../modules/utils.js').AppState} state - App state
- * @param {number} targetRatio - Target aspect ratio
- * @param {Object} callbacks - Callback functions
+ * Apply a preset ratio to the active area, keeping its width when it fits
+ * @param {import('../modules/utils.js').AppState} state
+ * @param {number} targetRatio - Width / height
  */
-export function applyRatioPreset(state, targetRatio, callbacks = {}) {
-  if (!state.tablet) return;
+export function applyRatioPreset(state, targetRatio) {
+  if (!state.tablet || !(targetRatio > 0)) return;
+  const area = getActiveArea(state);
+  const { width: tw, height: th } = state.tablet;
 
-  const activeArea = getActiveArea(state);
-  const currentWidth = activeArea.width;
-  let newHeight = currentWidth / targetRatio;
-
-  // Clamp to tablet bounds
-  if (newHeight > state.tablet.height) {
-    newHeight = state.tablet.height;
-    activeArea.width = newHeight * targetRatio;
+  let w = area.width;
+  let h = w / targetRatio;
+  if (h > th) {
+    h = th;
+    w = h * targetRatio;
   }
-
-  activeArea.height = newHeight;
+  if (w > tw) {
+    w = tw;
+    h = w / targetRatio;
+  }
+  area.width = w;
+  area.height = h;
   clampAreaPosition(state);
-  syncActiveArea(state, setArea, setAreaB);
-
-  if (callbacks.onUpdate) {
-    callbacks.onUpdate(activeArea);
-  }
-}
-
-/**
- * Calculate ratio display string for active area
- * @param {import('../modules/utils.js').AppState} state - App state
- * @returns {string} - Ratio string (e.g., "16:9")
- */
-export function getActiveRatioString(state) {
-  const activeArea = getActiveArea(state);
-  return calculateRatioString(activeArea.width, activeArea.height);
-}
-
-/**
- * Get formatted area dimensions string
- * @param {import('../modules/utils.js').AppState} state - App state
- * @returns {string} - Dimensions string (e.g., "100.0 × 62.5")
- */
-export function getAreaDimensionsString(state) {
-  const activeArea = getActiveArea(state);
-  return `${formatNumber(activeArea.width, 1)} × ${formatNumber(activeArea.height, 1)}`;
 }
