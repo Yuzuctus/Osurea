@@ -1,7 +1,5 @@
 {
-  "app.kicker": "osu! · tablet area",
   "app.title": "Area visualizer",
-  "app.description": "Set, compare and save the active area of your tablet, to the tenth of a millimetre.",
   "app.skip": "Skip to content",
   "nav.label": "Main",
   "nav.area": "Area",
@@ -33,7 +31,6 @@
   "area.grid": "Grid",
   "area.gridHint": "Grid: 10 mm",
   "area.fullArea": "Full area",
-  "area.align": "Align",
   "area.recap": "Summary",
   "area.size": "Area",
   "area.surface": "Surface",
@@ -41,7 +38,7 @@
   "area.coverageY": "Coverage Y",
   "area.position": "Centre",
   "area.stage": "Preview",
-  "area.dragHint": "Drag the area, or select it and use the arrow keys (Shift: 10 mm). In the fields, ↑ ↓ change the value by 1 (Shift: 10, Alt: 0.1).",
+  "area.dragHint": "Drag the area, or select it and use the arrow keys (Shift: 10 mm). Right-click the preview to align it on an edge or a corner. In the fields, ↑ ↓ change the value by 1 (Shift: 10, Alt: 0.1).",
   "area.label": "Zone {{zone}}, {{width}} × {{height}} mm, centre at {{x}}, {{y}} mm. Arrow keys move it.",
   "alignment.title": "Align the area",
   "alignment.top-left": "Top left",
@@ -95,7 +92,6 @@
   "notifications.error": "Something went wrong",
   "footer.madeBy": "Made for osu! players",
   "footer.source": "Source code",
-  "footer.links": "Links",
   "group.size": "Size",
   "group.position": "Position (centre)",
   "group.shape": "Shape",
@@ -107,7 +103,7 @@
   "area.ratioHint": "Custom: two numbers, e.g. 21 : 9 or 1,6 : 1",
   "history.undo": "Undo (Ctrl + Z)",
   "history.redo": "Redo (Ctrl + Shift + Z)",
-  "area.dragHintTouch": "Drag the area with your finger; the fields give the exact values.",
+  "area.dragHintTouch": "Drag the area with your finger; the fields give the exact values. “Full area” centres it and fills the tablet.",
   "hint.max": "max {{value}} {{unit}}",
   "hint.range": "{{min}} to {{max}} {{unit}}",
   "hint.fixed": "fixed at {{value}} {{unit}}",
@@ -132,5 +128,9 @@
   "error.number": "Enter a number, e.g. 76 or 62.5",
   "favorites.storageError": "The favorite could not be saved: this browser blocks storage for the page.",
   "favorites.storageBlockedTitle": "This browser blocks storage",
-  "favorites.storageBlockedBody": "Favorites and settings cannot be kept after you leave (private window or blocked site data)."
+  "favorites.storageBlockedBody": "Favorites and settings cannot be kept after you leave (private window or blocked site data).",
+  "help.label": "How it works",
+  "footer.tabletSettings": "Tablet settings",
+  "footer.spreadsheets": "Spreadsheets",
+  "footer.otherProjects": "Other projects"
 }

@@ -1,7 +1,5 @@
 {
-  "app.kicker": "osu! · zone de tablette",
   "app.title": "Visualiseur d'area",
-  "app.description": "Règle, compare et sauvegarde la zone active de ta tablette, au dixième de millimètre.",
   "app.skip": "Aller au contenu",
   "nav.label": "Principale",
   "nav.area": "Zone",
@@ -33,7 +31,6 @@
   "area.grid": "Grille",
   "area.gridHint": "Grille : 10 mm",
   "area.fullArea": "Zone entière",
-  "area.align": "Aligner",
   "area.recap": "Récapitulatif",
   "area.size": "Zone",
   "area.surface": "Surface",
@@ -41,7 +38,7 @@
   "area.coverageY": "Couverture Y",
   "area.position": "Centre",
   "area.stage": "Aperçu",
-  "area.dragHint": "Glisse la zone, ou sélectionne-la et utilise les flèches (Maj : 10 mm). Dans les champs, ↑ ↓ changent la valeur de 1 (Maj : 10, Alt : 0,1).",
+  "area.dragHint": "Glisse la zone, ou sélectionne-la et utilise les flèches (Maj : 10 mm). Clic droit sur l’aperçu pour l’aligner sur un bord ou un coin. Dans les champs, ↑ ↓ changent la valeur de 1 (Maj : 10, Alt : 0,1).",
   "area.label": "Zone {{zone}}, {{width}} × {{height}} mm, centre à {{x}}, {{y}} mm. Les flèches la déplacent.",
   "alignment.title": "Aligner la zone",
   "alignment.top-left": "En haut à gauche",
@@ -95,7 +92,6 @@
   "notifications.error": "Une erreur est survenue",
   "footer.madeBy": "Fait pour les joueurs d'osu!",
   "footer.source": "Code source",
-  "footer.links": "Liens",
   "group.size": "Taille",
   "group.position": "Position (centre)",
   "group.shape": "Forme",
@@ -107,7 +103,7 @@
   "area.ratioHint": "Perso : deux nombres, par ex. 21 : 9 ou 1,6 : 1",
   "history.undo": "Annuler (Ctrl + Z)",
   "history.redo": "Rétablir (Ctrl + Maj + Z)",
-  "area.dragHintTouch": "Glisse la zone du doigt ; les champs donnent les valeurs exactes.",
+  "area.dragHintTouch": "Glisse la zone du doigt ; les champs donnent les valeurs exactes. « Zone entière » la centre et remplit la tablette.",
   "hint.max": "max {{value}} {{unit}}",
   "hint.range": "de {{min}} à {{max}} {{unit}}",
   "hint.fixed": "fixé à {{value}} {{unit}}",
@@ -132,5 +128,9 @@
   "error.number": "Entre un nombre, par ex. 76 ou 62,5",
   "favorites.storageError": "Le favori n'a pas pu être enregistré : ce navigateur bloque le stockage pour la page.",
   "favorites.storageBlockedTitle": "Ce navigateur bloque le stockage",
-  "favorites.storageBlockedBody": "Les favoris et réglages ne seront pas gardés après ton départ (fenêtre privée ou données de site bloquées)."
+  "favorites.storageBlockedBody": "Les favoris et réglages ne seront pas gardés après ton départ (fenêtre privée ou données de site bloquées).",
+  "help.label": "Mode d’emploi",
+  "footer.tabletSettings": "Réglages tablette",
+  "footer.spreadsheets": "Feuilles de calcul",
+  "footer.otherProjects": "Autres projets"
 }
