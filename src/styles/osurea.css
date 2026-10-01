@@ -20,7 +20,7 @@ body {
 }
 
 .os-main {
-  padding-bottom: var(--ag-space-10);
+  padding-block: var(--ag-space-4) var(--ag-space-10);
 }
 
 .os-icon {
@@ -40,10 +40,29 @@ body {
 
 .os-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 27rem);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
   align-items: start;
-  gap: var(--ag-space-9) var(--ag-space-10);
-  margin-top: var(--ag-space-6);
+  gap: var(--ag-space-7) var(--ag-space-8);
+}
+
+/* One screen: on a desktop window, preview and settings fill the height
+   left under the header, and the preview grows to use it. Settings taller
+   than the window (a very short one) let the page scroll rather than hide. */
+@media (min-width: 961px) and (min-height: 560px) {
+  .os-workbench {
+    min-height: calc(100svh - 61px - 2 * var(--ag-space-4));
+    align-items: stretch;
+  }
+  .os-stage {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+  .os-stage .os-visualizer {
+    height: auto;
+    min-height: 240px;
+    flex: 1 1 0;
+  }
 }
 .os-favorites {
   margin-top: var(--ag-space-10);
@@ -51,21 +70,9 @@ body {
 
 /* ================================================================ stage */
 
-/* On a wide screen the preview stays in view while the settings scroll. */
-/* Only where the whole preview fits in the window: a taller sticky block
-   would hide its own readout. */
-@media (min-width: 961px) and (min-height: 760px) {
-  .os-stage {
-    position: sticky;
-    top: calc(60px + var(--ag-space-4));
-  }
-  .os-visualizer {
-    height: clamp(340px, calc(100svh - 330px), 760px);
-  }
-}
 .os-stage__head {
   align-items: center;
-  margin-bottom: var(--ag-space-4);
+  margin-bottom: var(--ag-space-3);
 }
 .os-tools {
   --ag-cluster-gap: var(--ag-space-2);
@@ -146,7 +153,7 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--ag-space-5);
-  margin-top: var(--ag-space-5);
+  margin-top: var(--ag-space-3);
 }
 .os-readout .os-readout__detail {
   color: var(--ag-muted);
@@ -159,36 +166,33 @@ body {
   padding-top: var(--ag-space-2);
 }
 .os-readout dd {
-  font: 600 var(--ag-text-2xl) / 1 var(--ag-font-title);
+  font: 600 var(--ag-text-xl) / 1 var(--ag-font-title);
   overflow-wrap: anywhere;
 }
 .os-readout small {
   color: var(--ag-faint);
   font: 500 var(--ag-text-xs) / 1 var(--ag-font-mono);
 }
-.os-hint {
-  margin-top: var(--ag-space-3);
-}
 
 /* =============================================================== config */
 
 .os-config__body {
   display: grid;
-  gap: var(--ag-space-8);
+  gap: var(--ag-space-5);
 }
 
 /* A group of settings: a ruled kicker, then its fields. */
 .os-group {
   display: grid;
   min-width: 0;
-  gap: var(--ag-space-5);
+  gap: var(--ag-space-3);
   margin: 0;
   border: 0;
   padding: 0;
 }
 .os-group__title {
   width: 100%;
-  margin-bottom: var(--ag-space-4);
+  margin-bottom: var(--ag-space-2);
   border-bottom: var(--ag-border-hair) solid var(--ag-rule-strong);
   padding: 0 0 var(--ag-space-2);
   color: var(--ag-muted);
@@ -239,10 +243,16 @@ body {
   align-items: center;
   gap: var(--ag-space-2) var(--ag-space-3);
 }
-.os-compare .ag-button[aria-pressed='true'] {
-  border-color: var(--ag-ink);
+.os-compare__toggle {
+  min-height: 0;
+  border-bottom: 0;
+  padding-block: var(--ag-space-2);
+}
+.os-compare__toggle:hover .ag-check__box {
+  background: var(--ag-surface);
+}
+.os-compare__toggle:hover input:checked + .ag-check__box {
   background: var(--ag-ink);
-  color: var(--ag-on-inverse);
 }
 .os-swatch {
   display: inline-block;
@@ -252,10 +262,32 @@ body {
   border: var(--ag-border-hair) solid var(--ag-ink);
   background: var(--os-zone-a);
 }
-[data-zone='B'] > .os-swatch {
+[data-zone='B'] > .os-compare__toggle {
+  min-height: 0;
+  border-bottom: 0;
+  padding-block: var(--ag-space-2);
+}
+.os-compare__toggle:hover .ag-check__box {
+  background: var(--ag-surface);
+}
+.os-compare__toggle:hover input:checked + .ag-check__box {
+  background: var(--ag-ink);
+}
+.os-swatch {
   background: var(--os-zone-b);
 }
-.ag-segmented__item[aria-pressed='true'] .os-swatch {
+.ag-segmented__item[aria-pressed='true'] .os-compare__toggle {
+  min-height: 0;
+  border-bottom: 0;
+  padding-block: var(--ag-space-2);
+}
+.os-compare__toggle:hover .ag-check__box {
+  background: var(--ag-surface);
+}
+.os-compare__toggle:hover input:checked + .ag-check__box {
+  background: var(--ag-ink);
+}
+.os-swatch {
   border-color: var(--ag-on-inverse);
 }
 
@@ -349,21 +381,13 @@ body {
 .os-ratio__custom .ag-field__hint {
   grid-column: 1 / -1;
 }
-.os-align-inline {
-  display: grid;
-  justify-items: start;
-  gap: 6px;
-}
 
 /* Slider: a label, the range, then its exact value. */
 .os-slider {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 6rem;
+  grid-template-columns: 7rem minmax(0, 1fr) 5.5rem;
   align-items: center;
-  gap: var(--ag-space-1) var(--ag-space-4);
-}
-.os-slider > .ag-field__label {
-  grid-column: 1 / -1;
+  gap: var(--ag-space-3);
 }
 .os-range {
   width: 100%;
@@ -411,19 +435,29 @@ body {
 
 .os-config__actions {
   border-top: var(--ag-border-rule) solid var(--ag-ink);
-  padding-top: var(--ag-space-5);
+  padding-top: var(--ag-space-4);
+}
+
+/* The "i" next to undo / redo: the gestures and keys, one tap away */
+.os-help {
+  align-self: center;
+  margin-right: var(--ag-space-2);
+}
+.os-help .ag-info__panel {
+  right: -8px;
+  left: auto;
 }
 
 /* ======================================================== tablet picker */
 
 .os-tablet {
   position: relative;
-  width: min(100%, 26rem);
+  width: 100%;
 }
 .os-tablet__trigger {
   display: grid;
   width: 100%;
-  min-height: 56px;
+  min-height: 52px;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 2px var(--ag-space-3);
@@ -684,6 +718,35 @@ button.ag-record__primary {
   }
 }
 @media (max-width: 620px) {
+  /* Tools on one row: icons only, the label stays for screen readers */
+  .os-stage__head {
+    flex-wrap: nowrap;
+  }
+  .os-tools .ag-button:not(.ag-button--icon) {
+    width: var(--ag-target);
+    padding: 0;
+  }
+  .os-tools .ag-button > span[data-i18n] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  /* The help panel spans the toolbar instead of hanging off the "i" */
+  .os-stage__head {
+    position: relative;
+  }
+  .os-help {
+    position: static;
+  }
+  .os-help .ag-info__panel {
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+  }
   .os-tablet {
     width: 100%;
   }
@@ -708,5 +771,28 @@ button.ag-record__primary {
 @media (pointer: coarse) {
   .os-tools .ag-button {
     min-height: var(--ag-target);
+  }
+}
+/* Wide screens: settings on two columns, so they fit the window height
+   (a 1366 × 768 laptop included) and leave the preview most of the width */
+@media (min-width: 1280px) and (min-height: 560px) {
+  .os-workbench {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 40rem);
+  }
+  .os-config__body {
+    display: block;
+    columns: 2;
+    column-gap: var(--ag-space-7);
+  }
+  .os-config__body > * {
+    margin-bottom: var(--ag-space-5);
+    break-inside: avoid;
+  }
+  .os-slider {
+    grid-template-columns: minmax(0, 1fr) 5.5rem;
+    row-gap: 0;
+  }
+  .os-slider > .ag-field__label {
+    grid-column: 1 / -1;
   }
 }

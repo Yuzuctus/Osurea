@@ -51,16 +51,7 @@
     </header>
 
     <main id="main" class="ag-container os-main">
-      <div class="ag-page-head">
-        <div class="ag-page-head__copy">
-          <p class="ag-kicker" data-i18n="app.kicker">osu! · tablet area</p>
-          <h1 class="ag-page-head__title" data-i18n="app.title">Area visualizer</h1>
-          <p class="ag-page-head__lead" data-i18n="app.description">
-            Set, compare and save the active area of your tablet, to the tenth of a millimetre.
-          </p>
-        </div>
-        <div class="os-tablet" id="tablet-selector"></div>
-      </div>
+      <h1 class="ag-visually-hidden" data-i18n="app.title">Area visualizer</h1>
 
       <div class="os-workbench">
         <!-- Preview -->
@@ -68,17 +59,21 @@
           <div class="ag-section__head os-stage__head">
             <h2 class="ag-visually-hidden" id="stage-title" data-i18n="area.stage">Preview</h2>
             <div class="ag-cluster os-tools">
-              <button class="ag-button ag-button--quiet" type="button" id="toggle-grid" aria-pressed="true">
+              <button class="ag-button ag-button--quiet" type="button" id="toggle-grid" aria-pressed="true" data-i18n-title="area.grid">
                 <span class="os-icon" data-icon="grid"></span><span data-i18n="area.grid">Grid</span>
               </button>
-              <button class="ag-button ag-button--quiet" type="button" id="full-area">
+              <button class="ag-button ag-button--quiet" type="button" id="full-area" data-i18n-title="area.fullArea">
                 <span class="os-icon" data-icon="crop"></span><span data-i18n="area.fullArea">Full area</span>
               </button>
-              <button class="ag-button ag-button--quiet" type="button" id="show-recap">
+              <button class="ag-button ag-button--quiet" type="button" id="show-recap" data-i18n-title="area.recap">
                 <span class="os-icon" data-icon="info"></span><span data-i18n="area.recap">Summary</span>
               </button>
             </div>
             <div class="ag-cluster os-tools os-tools--history">
+              <span class="ag-info os-help">
+                <button class="ag-info__button" type="button" id="help-button" aria-expanded="false" aria-controls="drag-hint" data-i18n-aria-label="help.label" aria-label="How it works">i</button>
+                <span class="ag-info__panel" id="drag-hint" role="note" hidden></span>
+              </span>
               <button class="ag-button ag-button--icon ag-button--quiet" type="button" id="undo" disabled data-i18n-aria-label="history.undo" data-i18n-title="history.undo" aria-label="Undo">
                 <span class="os-icon" data-icon="undo"></span>
               </button>
@@ -91,24 +86,23 @@
           <div id="visualizer" class="os-visualizer"></div>
 
           <dl class="os-readout" id="readout"></dl>
-          <p class="ag-meta os-hint" id="drag-hint"></p>
         </section>
 
         <!-- Settings -->
         <section class="ag-section os-config" aria-labelledby="area-title">
-          <div class="ag-section__head">
-            <div class="ag-section__heading">
-              <p class="ag-kicker" data-i18n="area.kicker">Settings</p>
-              <h2 class="ag-section__title" id="area-title" data-i18n="area.title">Active area</h2>
-            </div>
-          </div>
+          <h2 class="ag-visually-hidden" id="area-title" data-i18n="area.kicker">Settings</h2>
 
           <div class="os-config__body">
+            <div class="os-tablet" id="tablet-selector"></div>
+
             <div class="os-compare">
-              <button class="ag-button ag-button--quiet" type="button" id="toggle-comparison" aria-pressed="false">
-                <span class="os-icon" data-icon="layers"></span>
-                <span data-i18n="comparison.toggle">Compare two zones</span>
-              </button>
+              <label class="ag-check os-compare__toggle">
+                <input type="checkbox" id="toggle-comparison" />
+                <span class="ag-check__box" aria-hidden="true"></span>
+                <span class="ag-check__text">
+                  <span class="ag-check__label" data-i18n="comparison.toggle">Compare two zones</span>
+                </span>
+              </label>
               <div class="ag-segmented" role="group" id="zone-selector" aria-label="Zone being edited" data-i18n-aria-label="comparison.zones" hidden>
                 <button class="ag-segmented__item" type="button" data-zone="A" aria-pressed="true">
                   <span class="os-swatch" aria-hidden="true"></span><span data-zone-label>Zone A</span>
@@ -206,20 +200,6 @@
                   <span class="ag-field__hint" id="area-pos-y-hint"></span>
                 </div>
               </div>
-              <div class="os-align-inline">
-                <span class="ag-field__label" id="align-label" data-i18n="area.align">Align</span>
-                <div class="os-align__grid" role="group" aria-labelledby="align-label">
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="top-left" data-i18n-aria-label="alignment.top-left" data-i18n-title="alignment.top-left"><span class="os-icon" data-icon="alignTopLeft"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="top" data-i18n-aria-label="alignment.top" data-i18n-title="alignment.top"><span class="os-icon" data-icon="alignTop"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="top-right" data-i18n-aria-label="alignment.top-right" data-i18n-title="alignment.top-right"><span class="os-icon" data-icon="alignTopRight"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="left" data-i18n-aria-label="alignment.left" data-i18n-title="alignment.left"><span class="os-icon" data-icon="alignLeft"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="center" data-i18n-aria-label="alignment.center" data-i18n-title="alignment.center"><span class="os-icon" data-icon="alignCenter"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="right" data-i18n-aria-label="alignment.right" data-i18n-title="alignment.right"><span class="os-icon" data-icon="alignRight"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="bottom-left" data-i18n-aria-label="alignment.bottom-left" data-i18n-title="alignment.bottom-left"><span class="os-icon" data-icon="alignBottomLeft"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="bottom" data-i18n-aria-label="alignment.bottom" data-i18n-title="alignment.bottom"><span class="os-icon" data-icon="alignBottom"></span></button>
-                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="bottom-right" data-i18n-aria-label="alignment.bottom-right" data-i18n-title="alignment.bottom-right"><span class="os-icon" data-icon="alignBottomRight"></span></button>
-                </div>
-              </div>
               <p class="os-note" data-note="position" role="status"></p>
             </fieldset>
 
@@ -265,11 +245,26 @@
       <div class="ag-container ag-footer__inner">
         <div class="ag-footer__cols">
           <div>
-            <p class="ag-kicker" data-i18n="footer.links">Links</p>
+            <p class="ag-kicker" data-i18n="footer.tabletSettings">Tablet settings</p>
             <ul>
-              <li><a href="https://github.com/Yuzuctus/Osurea"><span data-i18n="footer.source">Source code</span> ↗</a></li>
-              <li><a href="https://yuzuctus.fr">yuzuctus.fr ↗</a></li>
-              <li><a href="https://osu.ppy.sh">osu! ↗</a></li>
+              <li><a href="https://github.com/OpenTabletDriver/OpenTabletDriver" target="_blank" rel="noopener">OpenTabletDriver ↗</a></li>
+              <li><a href="https://github.com/KaikeGold/OsuAreaCalculator" target="_blank" rel="noopener">Osu Area Calculator ↗</a></li>
+              <li><a href="https://mixmg.github.io/smoothing/smoothing-calculator.html" target="_blank" rel="noopener">Smoothing Calculator ↗</a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="ag-kicker" data-i18n="footer.spreadsheets">Spreadsheets</p>
+            <ul>
+              <li><a href="https://docs.google.com/spreadsheets/d/125LNzGmidy1gagwYUt12tRhrNdrWFHhWon7kxWY7iWU/edit?gid=854129046#gid=854129046" target="_blank" rel="noopener">Tablet Compatibility Spreadsheet ↗</a></li>
+              <li><a href="https://docs.google.com/spreadsheets/d/1DYVfiSpQqdpa4sWWYUALPmliOIuGyKog7B7LJJdmlhE/edit?gid=2077726645#gid=2077726645" target="_blank" rel="noopener">Area Calculator Spreadsheet ↗</a></li>
+            </ul>
+          </div>
+          <div>
+            <p class="ag-kicker" data-i18n="footer.otherProjects">Other projects</p>
+            <ul>
+              <li><a href="https://skins.yuzuctus.fr/" target="_blank" rel="noopener">osu! Yuzu Skins ↗</a></li>
+              <li><a href="https://yuzuctus.fr/" target="_blank" rel="noopener">yuzuctus.fr ↗</a></li>
+              <li><a href="https://github.com/Yuzuctus/Osurea" target="_blank" rel="noopener"><span data-i18n="footer.source">Source code</span> ↗</a></li>
             </ul>
           </div>
         </div>

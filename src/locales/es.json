@@ -1,7 +1,5 @@
 {
-  "app.kicker": "osu! · área de tableta",
   "app.title": "Visualizador de área",
-  "app.description": "Ajusta, compara y guarda el área activa de tu tableta, a la décima de milímetro.",
   "app.skip": "Ir al contenido",
   "nav.label": "Principal",
   "nav.area": "Área",
@@ -33,7 +31,6 @@
   "area.grid": "Cuadrícula",
   "area.gridHint": "Cuadrícula: 10 mm",
   "area.fullArea": "Área completa",
-  "area.align": "Alinear",
   "area.recap": "Resumen",
   "area.size": "Área",
   "area.surface": "Superficie",
@@ -41,7 +38,7 @@
   "area.coverageY": "Cobertura Y",
   "area.position": "Centro",
   "area.stage": "Vista previa",
-  "area.dragHint": "Arrastra el área, o selecciónala y usa las flechas (Mayús: 10 mm). En los campos, ↑ ↓ cambian el valor en 1 (Mayús: 10, Alt: 0,1).",
+  "area.dragHint": "Arrastra el área, o selecciónala y usa las flechas (Mayús: 10 mm). Clic derecho en la vista previa para alinearla con un borde o una esquina. En los campos, ↑ ↓ cambian el valor en 1 (Mayús: 10, Alt: 0,1).",
   "area.label": "Zona {{zone}}, {{width}} × {{height}} mm, centro en {{x}}, {{y}} mm. Las flechas la mueven.",
   "alignment.title": "Alinear el área",
   "alignment.top-left": "Arriba a la izquierda",
@@ -95,7 +92,6 @@
   "notifications.error": "Algo salió mal",
   "footer.madeBy": "Hecho para jugadores de osu!",
   "footer.source": "Código fuente",
-  "footer.links": "Enlaces",
   "group.size": "Tamaño",
   "group.position": "Posición (centro)",
   "group.shape": "Forma",
@@ -107,7 +103,7 @@
   "area.ratioHint": "Otra: dos números, p. ej. 21 : 9 o 1,6 : 1",
   "history.undo": "Deshacer (Ctrl + Z)",
   "history.redo": "Rehacer (Ctrl + Mayús + Z)",
-  "area.dragHintTouch": "Arrastra el área con el dedo; los campos dan los valores exactos.",
+  "area.dragHintTouch": "Arrastra el área con el dedo; los campos dan los valores exactos. «Área completa» la centra y llena la tableta.",
   "hint.max": "máx. {{value}} {{unit}}",
   "hint.range": "de {{min}} a {{max}} {{unit}}",
   "hint.fixed": "fijado en {{value}} {{unit}}",
@@ -132,5 +128,9 @@
   "error.number": "Escribe un número, p. ej. 76 o 62,5",
   "favorites.storageError": "No se pudo guardar el favorito: este navegador bloquea el almacenamiento de la página.",
   "favorites.storageBlockedTitle": "Este navegador bloquea el almacenamiento",
-  "favorites.storageBlockedBody": "Los favoritos y ajustes no se conservarán al salir (ventana privada o datos del sitio bloqueados)."
+  "favorites.storageBlockedBody": "Los favoritos y ajustes no se conservarán al salir (ventana privada o datos del sitio bloqueados).",
+  "help.label": "Cómo funciona",
+  "footer.tabletSettings": "Ajustes de tableta",
+  "footer.spreadsheets": "Hojas de cálculo",
+  "footer.otherProjects": "Otros proyectos"
 }

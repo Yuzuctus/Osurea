@@ -12,6 +12,7 @@ import './styles/agrume/tokens.css';
 import './styles/agrume/base.css';
 import './styles/agrume/components.css';
 import './styles/agrume/app.css';
+import './styles/agrume/data.css';
 import './styles/osurea.css';
 
 import { initI18n, t } from './modules/i18n.js';
@@ -25,7 +26,6 @@ import {
   setGridVisible,
   setComparisonMode,
   setActiveZone,
-  alignArea,
   refreshVisualizerLabels,
 } from './modules/visualizer.js';
 import {
@@ -126,7 +126,7 @@ function cacheDOMElements() {
     ratioW: $('#ratio-w'),
     ratioH: $('#ratio-h'),
     ratioApply: $('#ratio-apply'),
-    alignButtons: document.querySelectorAll('.os-align-inline [data-align]'),
+    helpButton: $('#help-button'),
     notes: document.querySelectorAll('[data-note]'),
     stage: $('.os-stage'),
     visualizer: $('#visualizer'),
@@ -344,7 +344,7 @@ function renderControls() {
   const ratio = calculateRatioString(area.width, area.height);
   const customOpen = DOM.ratioCustom ? !DOM.ratioCustom.hidden : false;
 
-  DOM.comparisonToggle?.setAttribute('aria-pressed', String(state.comparisonMode));
+  if (DOM.comparisonToggle) DOM.comparisonToggle.checked = state.comparisonMode;
   if (DOM.zoneSelector) DOM.zoneSelector.hidden = !state.comparisonMode;
   DOM.zoneButtons.forEach(btn => {
     const { zone } = btn.dataset;
@@ -811,12 +811,25 @@ function setupControls() {
     input?.addEventListener('focus', () => input.select());
   }
 
-  DOM.alignButtons.forEach(btn =>
-    btn.addEventListener('click', () => {
-      clearNotes();
-      alignArea(btn.dataset.align);
-    })
-  );
+  // Help: a small "i" opens the gestures and keys, one tap away
+  const closeHelp = () => {
+    if (DOM.dragHint) DOM.dragHint.hidden = true;
+    DOM.helpButton?.setAttribute('aria-expanded', 'false');
+  };
+  DOM.helpButton?.addEventListener('click', () => {
+    const open = DOM.dragHint.hidden;
+    DOM.dragHint.hidden = !open;
+    DOM.helpButton.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!e.target.closest('.os-help')) closeHelp();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && DOM.dragHint && !DOM.dragHint.hidden) {
+      closeHelp();
+      DOM.helpButton?.focus();
+    }
+  });
 
   DOM.undoBtn?.addEventListener('click', handleUndo);
   DOM.redoBtn?.addEventListener('click', handleRedo);
@@ -829,7 +842,7 @@ function setupControls() {
     );
   });
   DOM.proPlayersBtn?.addEventListener('click', openProPlayersModal);
-  DOM.comparisonToggle?.addEventListener('click', toggleComparisonMode);
+  DOM.comparisonToggle?.addEventListener('change', toggleComparisonMode);
   DOM.zoneButtons.forEach(btn =>
     btn.addEventListener('click', () => switchActiveZone(btn.dataset.zone))
   );

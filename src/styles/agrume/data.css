@@ -1,0 +1,986 @@
+/*
+ * Agrume v3 · data (optional). Copy verbatim, after components.css, only in a
+ * product that shows measures (FM). Showcase sites do not load it.
+ *
+ * - A colour names a measure (time, count, record, skip), never a series
+ *   index; the categorical set (--ag-cat-*) names identities and nothing else.
+ * - Axes are mono, faint, tabular; gridlines are hairlines; the peak is inked.
+ * - Every exact value is reachable by pointer, keyboard and text.
+ */
+
+:root {
+  --ag-data-time: light-dark(#1e9468, #4fcf98); /* duration: the lead measure */
+  --ag-data-time-soft: light-dark(#c9ead9, #173a2b);
+  --ag-data-count: light-dark(#1c84a5, #5cc8e6); /* plays, sessions */
+  --ag-data-count-soft: light-dark(#cbe6ef, #15313d);
+  --ag-data-record: light-dark(#e3c22c, #f2e285); /* fill only in light (1.6:1 as a line) */
+  --ag-data-record-ink: var(--ag-gold);
+  --ag-data-skip: light-dark(#cc4872, #f28bab);
+  --ag-data-skip-soft: light-dark(#f5cfda, #3d1c28);
+  --ag-trend-up: light-dark(#0e6b4c, #86e3b4); /* = identity green */
+  --ag-trend-down: light-dark(#a8345a, #f28bab);
+  --ag-trend-flat: var(--ag-faint);
+  /* Sequential ramp, ordered by luminance; 0 = nothing measured. */
+  --ag-heat-0: var(--ag-surface-sunken);
+  --ag-heat-1: light-dark(#c4e8d4, #1e4a36);
+  --ag-heat-2: light-dark(#8fd5b5, #206749);
+  --ag-heat-3: light-dark(#4fb98a, #218c62);
+  --ag-heat-4: light-dark(#17805a, #43c48f);
+  --ag-heat-5: light-dark(#0d5c43, #a4f0ca);
+  --ag-heat-on-strong: light-dark(#fbfcf5, #07140e); /* text on steps 4–5 (≥ 4.7:1) */
+  /* Categorical identities: fixed order, by rank, never cycled; a 7th series
+     folds into "other". CVD-validated (adjacent ΔE ≥ 10.6 light, ≥ 9.1 dark).
+     cat-4 is 2.2:1 on light paper: always with direct labels or a key. */
+  --ag-cat-1: light-dark(#2f6fbf, #4886d4);
+  --ag-cat-2: light-dark(#e0672f, #d86128);
+  --ag-cat-3: light-dark(#17a07a, #1a9f76);
+  --ag-cat-4: light-dark(#d99a00, #bf8a0c);
+  --ag-cat-5: light-dark(#c9588a, #d45b8e);
+  --ag-cat-6: light-dark(#6a4fb3, #8573e0);
+  --ag-cat-other: light-dark(#cfcdbf, #3a453e);
+}
+
+/* ================================================================ numbers */
+
+.ag-stat {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 4px;
+}
+.ag-stat__label {
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+  line-height: 1.3;
+}
+.ag-stat__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 0.18em;
+  font: 600 var(--ag-stat-size, var(--ag-text-3xl)) / 0.95 var(--ag-font-title);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.ag-stat__unit {
+  color: var(--ag-muted);
+  font: 400 0.5em / 1 var(--ag-font-sans);
+  letter-spacing: 0;
+}
+.ag-stat__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--ag-space-2);
+  color: var(--ag-faint);
+  font-size: var(--ag-text-xs);
+}
+.ag-stat--lead {
+  --ag-stat-size: clamp(3rem, 6vw, 5rem);
+}
+.ag-stat--sm {
+  --ag-stat-size: var(--ag-text-xl);
+}
+.ag-stat--text .ag-stat__value {
+  font: 600 var(--ag-text-lg) / 1.2 var(--ag-font-sans);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.ag-stat[data-muted="true"] .ag-stat__value {
+  color: var(--ag-faint);
+}
+/* Stat strip: one rule grid instead of a wall of boxes. */
+.ag-statstrip {
+  display: grid;
+  overflow: hidden;
+  grid-template-columns: repeat(auto-fill, minmax(var(--ag-strip-min, 136px), 1fr));
+  row-gap: var(--ag-space-4);
+}
+.ag-statstrip > * {
+  margin-left: -1px;
+  border-left: var(--ag-border-hair) solid var(--ag-rule);
+  padding: 2px var(--ag-space-4);
+}
+.ag-statstrip > .ag-stat--lead {
+  grid-column: span 2;
+  --ag-stat-size: clamp(2.5rem, 3.6vw, 3.5rem);
+}
+/* Delta: direction by glyph and word; colour only reinforces it. */
+.ag-delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  color: var(--ag-trend-flat);
+  font-size: var(--ag-text-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ag-delta::before {
+  font-size: 0.72em;
+  content: "=";
+}
+.ag-delta[data-trend="up"] {
+  color: var(--ag-trend-up);
+}
+.ag-delta[data-trend="up"]::before {
+  content: "▲";
+}
+.ag-delta[data-trend="down"] {
+  color: var(--ag-trend-down);
+}
+.ag-delta[data-trend="down"]::before {
+  content: "▼";
+}
+.ag-delta[data-trend="new"] {
+  color: var(--ag-identity);
+}
+.ag-delta[data-trend="new"]::before {
+  content: "+";
+}
+/* Meter: a ratio on a 0–1 scale (--ag-value); the value is written beside it. */
+.ag-meter {
+  display: block;
+  height: var(--ag-meter-h, 6px);
+  overflow: hidden;
+  background: var(--ag-surface-sunken);
+}
+.ag-meter__fill {
+  display: block;
+  width: calc(var(--ag-value, 0) * 100%);
+  height: 100%;
+  background: var(--ag-meter-color, var(--ag-data-time));
+  transition: width var(--ag-dur-slow) var(--ag-ease);
+}
+.ag-meter[data-tone="count"] {
+  --ag-meter-color: var(--ag-data-count);
+}
+.ag-meter[data-tone="skip"] {
+  --ag-meter-color: var(--ag-data-skip);
+}
+.ag-meter[data-tone="record"] {
+  --ag-meter-color: var(--ag-data-record);
+}
+.ag-meter[data-tone="ink"] {
+  --ag-meter-color: var(--ag-ink);
+}
+/* Bar list: name · bar scaled to the list max · exact value. */
+.ag-barlist {
+  display: grid;
+  border-top: var(--ag-border-hair) solid var(--ag-rule);
+}
+.ag-barlist__row {
+  display: grid;
+  min-height: 36px;
+  grid-template-columns: minmax(6rem, var(--ag-barlist-label, 34%)) minmax(0, 1fr) minmax(4.5rem, auto);
+  align-items: center;
+  gap: var(--ag-space-3);
+  border-bottom: var(--ag-border-hair) solid var(--ag-rule);
+  padding-block: 6px;
+  font-size: var(--ag-text-sm);
+}
+.ag-barlist__name {
+  display: grid;
+  min-width: 0;
+}
+.ag-barlist__label,
+.ag-barlist__hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-barlist__hint {
+  color: var(--ag-faint);
+  font-size: var(--ag-text-xs);
+}
+.ag-barlist__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ================================================================= labels */
+
+.ag-tag[data-tone="record"] {
+  border-color: transparent;
+  background: var(--ag-data-record);
+  color: var(--ag-on-pigment);
+}
+.ag-tag[data-tone="count"] {
+  border-color: transparent;
+  background: var(--ag-data-count-soft);
+  color: var(--ag-ink);
+}
+.ag-tag[data-tone="skip"] {
+  border-color: transparent;
+  background: var(--ag-data-skip-soft);
+  color: var(--ag-ink);
+}
+/* Signal: a named state with a dot. */
+.ag-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ag-signal::before {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border: 1.5px solid var(--ag-faint);
+  border-radius: var(--ag-radius-round);
+  content: "";
+}
+.ag-signal[data-state="live"] {
+  color: var(--ag-ink);
+}
+.ag-signal[data-state="live"]::before {
+  border-color: var(--ag-data-time);
+  background: var(--ag-data-time);
+  animation: ag-pulse 2.4s var(--ag-ease) infinite;
+}
+.ag-signal[data-state="paused"]::before {
+  border-color: var(--ag-data-record-ink);
+  background: var(--ag-data-record);
+}
+.ag-signal[data-state="error"] {
+  color: var(--ag-danger);
+}
+.ag-signal[data-state="error"]::before {
+  border-color: var(--ag-danger);
+}
+@keyframes ag-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ag-data-time) 55%, transparent);
+  }
+  60% {
+    box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+/* ================================================================ periods */
+
+.ag-periodbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ag-space-3) var(--ag-space-5);
+}
+.ag-periodbar__label {
+  display: inline-flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--ag-space-2);
+}
+.ag-periodbar__current {
+  color: var(--ag-identity);
+  font-size: var(--ag-text-xs);
+  font-weight: 600;
+}
+.ag-stepper {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--ag-space-2);
+}
+.ag-stepper__button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  place-items: center;
+  border: var(--ag-border-hair) solid var(--ag-rule-strong);
+  padding: 0;
+  background: transparent;
+  font: 500 var(--ag-text-md) / 1 var(--ag-font-mono);
+}
+.ag-stepper__button:hover:not(:disabled) {
+  border-color: var(--ag-ink);
+  background: var(--ag-surface);
+}
+.ag-stepper__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+.ag-stepper__label {
+  min-width: 0;
+  font-size: var(--ag-text-md);
+  font-weight: 600;
+}
+@media (pointer: coarse) {
+  .ag-stepper__button {
+    width: var(--ag-target);
+    height: var(--ag-target);
+  }
+}
+
+/* Info: an explanation one tap away; a raised panel kept inside the screen. */
+.ag-info {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
+}
+.ag-info__button {
+  position: relative;
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: var(--ag-border-hair) solid var(--ag-rule-strong);
+  padding: 0;
+  background: transparent;
+  color: var(--ag-muted);
+  font: 500 11px / 1 var(--ag-font-mono);
+}
+.ag-info__button::after {
+  position: absolute;
+  inset: -13px;
+  content: "";
+}
+.ag-info__button:is(:hover, [aria-expanded="true"]) {
+  border-color: var(--ag-ink);
+  background: var(--ag-ink);
+  color: var(--ag-on-inverse);
+}
+.ag-info__panel {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 8px);
+  left: -8px;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 32px));
+  border: var(--ag-border-hair) solid var(--ag-ink);
+  padding: var(--ag-space-3) var(--ag-space-4);
+  background: var(--ag-surface-raised);
+  box-shadow: var(--ag-shadow-overlay);
+  color: var(--ag-muted);
+  font: 400 var(--ag-text-sm) / 1.5 var(--ag-font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ================================================================= charts */
+
+.ag-chart {
+  position: relative;
+  min-width: 0;
+  --ag-chart-color: var(--ag-data-time);
+  --ag-chart-soft: var(--ag-data-time-soft);
+}
+.ag-chart[data-tone="count"] {
+  --ag-chart-color: var(--ag-data-count);
+  --ag-chart-soft: var(--ag-data-count-soft);
+}
+.ag-chart[data-tone="skip"] {
+  --ag-chart-color: var(--ag-data-skip);
+  --ag-chart-soft: var(--ag-data-skip-soft);
+}
+.ag-chart[data-tone="record"] {
+  --ag-chart-color: var(--ag-data-record);
+  --ag-chart-soft: var(--ag-surface-sunken);
+}
+.ag-chart__plot {
+  position: relative;
+  outline: none;
+}
+.ag-chart__plot:focus-visible,
+.ag-heat:focus-visible,
+.ag-clock:focus-visible {
+  outline: 2px solid var(--ag-focus);
+  outline-offset: 4px;
+}
+/* Drawn at its real pixel width: axis text never scales. */
+.ag-chart__svg {
+  display: block;
+  width: 100%;
+  height: var(--ag-chart-h, 220px);
+  overflow: visible;
+}
+.ag-chart__grid {
+  stroke: var(--ag-rule);
+  shape-rendering: crispEdges;
+}
+.ag-chart__baseline {
+  stroke: var(--ag-ink);
+  shape-rendering: crispEdges;
+}
+.ag-chart__reference {
+  stroke: var(--ag-ink);
+  stroke-dasharray: 3 3;
+  shape-rendering: crispEdges;
+}
+.ag-chart__axis text,
+.ag-chart__tick,
+.ag-clock__tick,
+.ag-stream__scale text {
+  fill: var(--ag-faint);
+  font: 500 10.5px / 1 var(--ag-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.ag-chart__reference-label {
+  fill: var(--ag-ink);
+  font: 600 10.5px / 1 var(--ag-font-sans);
+  paint-order: stroke;
+  stroke: var(--ag-paper);
+  stroke-linejoin: round;
+  stroke-width: 4px;
+}
+.ag-chart__mark {
+  fill: var(--ag-chart-color);
+  transition: fill var(--ag-dur-fast) var(--ag-ease);
+}
+.ag-chart__mark[data-empty="true"] {
+  fill: var(--ag-rule);
+}
+.ag-chart__mark[data-state="muted"] {
+  fill: var(--ag-chart-soft);
+}
+.ag-chart__mark:is([data-state="peak"], [data-active="true"]) {
+  fill: var(--ag-ink);
+}
+.ag-chart__cursor,
+.ag-clock__cursor {
+  fill: var(--ag-ink);
+  opacity: 0.06;
+}
+.ag-chart__hit,
+.ag-clock__hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.ag-chart__line {
+  fill: none;
+  stroke: var(--ag-chart-color);
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+.ag-chart__area {
+  fill: var(--ag-chart-soft);
+  opacity: 0.8;
+}
+/* Readout: follows pointer and keyboard; replaces a floating box on touch. */
+.ag-chart__readout {
+  display: flex;
+  min-height: 22px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--ag-space-3);
+  margin-bottom: var(--ag-space-2);
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+}
+.ag-chart__readout strong {
+  color: var(--ag-ink);
+  font-size: var(--ag-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.ag-chart__values {
+  margin-top: var(--ag-space-3);
+  font-size: var(--ag-text-xs);
+}
+.ag-chart__values > summary {
+  color: var(--ag-faint);
+  cursor: pointer;
+}
+.ag-chart__values .ag-table {
+  margin-top: var(--ag-space-2);
+  font-size: var(--ag-text-xs);
+}
+/* Legend only when two measures share a plot. */
+.ag-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ag-space-1) var(--ag-space-4);
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+}
+.ag-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ag-legend__swatch {
+  width: 10px;
+  height: 10px;
+  background: var(--ag-swatch, var(--ag-data-time));
+}
+
+/* ============================================================== heat grid */
+
+.ag-heat {
+  display: grid;
+  grid-template-columns: var(--ag-heat-label, 2.5rem) repeat(var(--ag-heat-cols, 24), minmax(0, 1fr));
+  gap: 2px;
+  font: 500 10.5px / 1 var(--ag-font-mono);
+}
+.ag-heat[data-totals="row"] {
+  grid-template-columns: var(--ag-heat-label, 2.5rem) repeat(var(--ag-heat-cols, 24), minmax(0, 1fr)) var(--ag-heat-total, 4.5rem);
+}
+.ag-heat__label,
+.ag-heat__col {
+  display: flex;
+  align-items: center;
+  color: var(--ag-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ag-heat__col {
+  min-height: 16px;
+  justify-content: center;
+}
+.ag-heat__cell {
+  position: relative;
+  min-height: 12px;
+  aspect-ratio: var(--ag-heat-ratio, 1.15);
+  border: 0;
+  padding: 0;
+  background: var(--ag-heat-0);
+}
+.ag-heat__cell[data-level="1"],
+.ag-cal__day[data-level="1"] {
+  background: var(--ag-heat-1);
+}
+.ag-heat__cell[data-level="2"],
+.ag-cal__day[data-level="2"] {
+  background: var(--ag-heat-2);
+}
+.ag-heat__cell[data-level="3"],
+.ag-cal__day[data-level="3"] {
+  background: var(--ag-heat-3);
+}
+.ag-heat__cell[data-level="4"],
+.ag-cal__day[data-level="4"] {
+  background: var(--ag-heat-4);
+  color: var(--ag-heat-on-strong);
+}
+.ag-heat__cell[data-level="5"],
+.ag-cal__day[data-level="5"] {
+  background: var(--ag-heat-5);
+  color: var(--ag-heat-on-strong);
+}
+.ag-heat__cell[data-peak="true"]::after {
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--ag-ink);
+  content: "";
+}
+.ag-heat__cell:is(:hover, :focus-visible, [data-active="true"]),
+button.ag-cal__day:is(:hover, :focus-visible) {
+  z-index: 1;
+  outline: 2px solid var(--ag-ink);
+  outline-offset: 0;
+}
+.ag-heat__cell[data-outside="true"] {
+  visibility: hidden;
+}
+.ag-heat__total {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding-left: 6px;
+  color: var(--ag-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ag-heat__total i {
+  width: calc(var(--ag-value, 0) * 2rem);
+  height: 6px;
+  flex: none;
+  background: var(--ag-data-time);
+}
+.ag-heat[data-totals="col"] .ag-heat__total {
+  height: 3.25rem;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 6px 0 0;
+  font-size: 10px;
+}
+.ag-heat[data-totals="col"] .ag-heat__total i {
+  width: 60%;
+  height: calc(var(--ag-value, 0) * 2rem);
+}
+.ag-heat__total[data-peak="true"] {
+  color: var(--ag-ink);
+  font-weight: 600;
+}
+.ag-heat__total[data-peak="true"] i {
+  background: var(--ag-ink);
+}
+.ag-heat-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ag-faint);
+  font-size: var(--ag-text-xs);
+}
+.ag-heat-scale i {
+  width: 12px;
+  height: 12px;
+  background: var(--ag-heat-0);
+}
+.ag-heat-scale i:nth-of-type(2) {
+  background: var(--ag-heat-1);
+}
+.ag-heat-scale i:nth-of-type(3) {
+  background: var(--ag-heat-2);
+}
+.ag-heat-scale i:nth-of-type(4) {
+  background: var(--ag-heat-3);
+}
+.ag-heat-scale i:nth-of-type(5) {
+  background: var(--ag-heat-4);
+}
+.ag-heat-scale i:nth-of-type(6) {
+  background: var(--ag-heat-5);
+}
+
+/* ================================================================== clock */
+
+/* A day as a dial: midnight on top, one bar per hour, quarters named, the
+   centre is the readout. */
+.ag-clock {
+  position: relative;
+  width: 100%;
+  max-width: var(--ag-clock-size, 360px);
+  margin-inline: auto;
+  outline: none;
+  touch-action: manipulation;
+}
+.ag-clock__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.ag-clock__track {
+  fill: none;
+  stroke: var(--ag-rule);
+}
+.ag-clock__part {
+  fill: transparent;
+}
+.ag-clock__part[data-active="true"] {
+  fill: var(--ag-surface-sunken);
+}
+.ag-clock__divider {
+  stroke: var(--ag-rule-strong);
+}
+.ag-clock__part-label {
+  fill: var(--ag-faint);
+  font: 500 10px / 1 var(--ag-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ag-clock__bar {
+  fill: var(--ag-data-time);
+}
+.ag-clock__bar[data-empty="true"] {
+  fill: var(--ag-rule);
+}
+.ag-clock__bar[data-active="true"] {
+  fill: var(--ag-identity);
+}
+.ag-clock__bar[data-state="peak"] {
+  fill: var(--ag-ink);
+}
+.ag-clock__tick[data-major="true"] {
+  fill: var(--ag-ink);
+}
+.ag-clock__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+  text-align: center;
+}
+.ag-clock__center-label {
+  color: var(--ag-faint);
+  font: 500 var(--ag-text-2xs) / 1.2 var(--ag-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ag-clock__center-value {
+  font: 600 clamp(1.75rem, 7vw, 2.5rem) / 1 var(--ag-font-title);
+  font-variant-numeric: tabular-nums;
+}
+.ag-clock__center-detail {
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+}
+
+/* ========================================================= stream and key */
+
+/* Identities over time as a stream: each band wears its --ag-swatch, a paper
+   stroke separates neighbours, a scale bar replaces the y axis. */
+.ag-stream__band {
+  fill: var(--ag-swatch, var(--ag-cat-other));
+  stroke: var(--ag-paper);
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+  transition: opacity var(--ag-dur-fast) var(--ag-ease);
+}
+.ag-stream__band[data-dim="true"] {
+  opacity: 0.22;
+}
+.ag-stream__gap {
+  fill: var(--ag-surface-sunken);
+}
+.ag-stream__cursor {
+  stroke: var(--ag-ink);
+  stroke-width: 1.5;
+  shape-rendering: crispEdges;
+}
+.ag-stream__scale line {
+  stroke: var(--ag-ink);
+  shape-rendering: crispEdges;
+}
+/* The key doubles as the readout: identity, share, value at the cursor. */
+.ag-key {
+  display: grid;
+  font-size: var(--ag-text-sm);
+}
+.ag-key__row {
+  border-bottom: var(--ag-border-hair) solid var(--ag-rule);
+}
+.ag-key__row[data-dim="true"] {
+  color: var(--ag-faint);
+}
+.ag-key__item {
+  display: grid;
+  width: 100%;
+  min-height: 32px;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 2px var(--ag-space-2);
+  border: 0;
+  padding: 4px 0;
+  background: none;
+  text-align: left;
+}
+button.ag-key__item:hover {
+  background: var(--ag-surface);
+}
+button.ag-key__item:focus-visible {
+  outline-offset: -2px;
+}
+button.ag-key__item[aria-pressed="true"] .ag-key__name {
+  text-decoration: underline 2px;
+  text-underline-offset: 3px;
+}
+.ag-key__swatch {
+  width: 12px;
+  height: 12px;
+  background: var(--ag-swatch, var(--ag-cat-other));
+}
+.ag-key__swatch[data-part="other"] {
+  border: 1px solid var(--ag-rule-strong);
+  background: transparent;
+}
+.ag-key__swatch[data-part="unknown"] {
+  border: 1px dashed var(--ag-rule-strong);
+  background: var(--ag-surface-sunken);
+}
+.ag-key__name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-key__row[data-part] .ag-key__name {
+  color: var(--ag-muted);
+  font-weight: 400;
+}
+.ag-key__share {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: right;
+}
+.ag-key__time {
+  min-width: 4.5em;
+  color: var(--ag-muted);
+  font-size: var(--ag-text-xs);
+  text-align: right;
+}
+
+/* ================================================================== shift */
+
+/* Before → now on one scale: hollow = before, filled = now. */
+.ag-shift {
+  display: grid;
+  gap: var(--ag-space-2);
+}
+.ag-shift__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ag-space-1) var(--ag-space-4);
+  color: var(--ag-faint);
+  font: 500 var(--ag-text-2xs) / 1.3 var(--ag-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ag-shift__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ag-shift__legend .ag-shift__mark {
+  position: static;
+  transform: none;
+}
+.ag-shift__rows {
+  display: grid;
+}
+.ag-shift__row {
+  display: grid;
+  min-height: 40px;
+  grid-template-columns: minmax(6rem, 11rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ag-space-4);
+  border-bottom: var(--ag-border-hair) solid var(--ag-rule);
+}
+.ag-shift__name {
+  overflow: hidden;
+  font-size: var(--ag-text-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ag-shift__track {
+  position: relative;
+  height: 14px;
+  margin-inline: 7px;
+  background: linear-gradient(var(--ag-rule), var(--ag-rule)) center / 100% 1px no-repeat;
+}
+.ag-shift__line {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  background: var(--ag-trend-flat);
+  transform: translateY(-50%);
+}
+.ag-shift__row[data-trend="up"] .ag-shift__line {
+  background: var(--ag-trend-up);
+}
+.ag-shift__row[data-trend="down"] .ag-shift__line {
+  background: var(--ag-trend-down);
+}
+.ag-shift__mark {
+  position: absolute;
+  top: 50%;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ag-ink);
+  border-radius: var(--ag-radius-round);
+  background: var(--ag-paper);
+  transform: translate(-50%, -50%);
+}
+.ag-shift__mark[data-when="to"] {
+  background: var(--ag-ink);
+}
+.ag-shift__value {
+  color: var(--ag-muted);
+  font-size: var(--ag-text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================== calendars */
+
+.ag-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.ag-cal__head,
+.ag-yearcal__month,
+.ag-yearcal__weekday {
+  color: var(--ag-faint);
+  font: 500 var(--ag-text-2xs) / 1 var(--ag-font-mono);
+  white-space: nowrap;
+}
+.ag-cal__head {
+  padding-bottom: 4px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.ag-cal__day {
+  display: flex;
+  min-height: 52px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 0;
+  padding: 6px 7px;
+  background: var(--ag-heat-0);
+  color: var(--ag-ink);
+  text-align: left;
+}
+.ag-cal__day[data-outside="true"] {
+  background: transparent;
+}
+.ag-cal__num {
+  font: 500 var(--ag-text-xs) / 1 var(--ag-font-mono);
+}
+.ag-cal__value {
+  font-size: var(--ag-text-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ag-yearcal-scroll {
+  overflow-x: auto;
+}
+.ag-yearcal {
+  display: grid;
+  min-width: 560px;
+  grid-template-columns: 1.25rem repeat(var(--ag-weeks, 53), minmax(0, 1fr));
+  gap: 2px;
+}
+.ag-yearcal .ag-heat__cell {
+  min-height: 0;
+  aspect-ratio: 1;
+}
+.ag-yearcal__weekday {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 599px) {
+  .ag-shift__rows {
+  display: grid;
+}
+.ag-shift__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px var(--ag-space-3);
+    padding-block: var(--ag-space-2);
+  }
+  .ag-shift__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .ag-cal__day {
+    min-height: 40px;
+    padding: 4px 5px;
+  }
+  .ag-cal__value {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  .ag-key__item,
+  .ag-chart__values > summary {
+    min-height: var(--ag-target);
+  }
+}
