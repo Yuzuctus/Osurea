@@ -171,11 +171,10 @@
                   <button class="ag-segmented__item" type="button" id="ratio-custom-toggle" aria-pressed="false" aria-controls="ratio-custom" aria-expanded="false" data-i18n="area.ratioCustom">Custom</button>
                 </div>
                 <div class="os-ratio__custom" id="ratio-custom" hidden>
-                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-w" aria-label="Ratio width" data-i18n-aria-label="area.ratioW" />
+                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-w" placeholder="21" aria-label="Ratio width" data-i18n-aria-label="area.ratioW" />
                   <span aria-hidden="true">:</span>
-                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-h" aria-label="Ratio height" data-i18n-aria-label="area.ratioH" />
+                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-h" placeholder="9" aria-label="Ratio height" data-i18n-aria-label="area.ratioH" />
                   <button class="ag-button" type="button" id="ratio-apply" data-i18n="area.ratioApply">Apply</button>
-                  <span class="ag-field__hint" data-i18n="area.ratioHint">e.g. 16:9, 4:3 or 1.6:1</span>
                 </div>
               </div>
               <p class="os-note" data-note="size" role="status"></p>
@@ -203,42 +202,47 @@
               <p class="os-note" data-note="position" role="status"></p>
             </fieldset>
 
-            <!-- Shape -->
-            <fieldset class="os-group">
-              <legend class="os-group__title" data-i18n="group.shape">Shape</legend>
-              <div class="os-slider">
-                <label class="ag-field__label" for="area-radius" data-i18n="area.radius">Corner radius</label>
-                <input class="os-range" type="range" id="area-radius" min="0" max="100" step="1" value="0" />
-                <span class="os-unit os-unit--sm" data-unit="%">
-                  <input class="ag-input" type="text" inputmode="numeric" autocomplete="off" id="radius-value" aria-labelledby="radius-label-num" />
-                </span>
-                <span class="ag-visually-hidden" id="radius-label-num" data-i18n="area.radius">Corner radius</span>
-              </div>
-              <div class="os-slider">
-                <label class="ag-field__label" for="area-rotation" data-i18n="area.rotation">Rotation</label>
-                <input class="os-range" type="range" id="area-rotation" min="-180" max="180" step="1" value="0" />
-                <span class="os-unit os-unit--sm" data-unit="°">
-                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" id="rotation-value" aria-labelledby="rotation-label-num" />
-                </span>
-                <span class="ag-visually-hidden" id="rotation-label-num" data-i18n="area.rotation">Rotation</span>
-              </div>
-              <p class="os-note" data-note="shape" role="status"></p>
-            </fieldset>
-
-            <div class="ag-cluster os-config__actions">
-              <button class="ag-button ag-button--solid" type="button" id="save-favorite">
-                <span data-i18n="favorites.save">Save as favorite</span>
-              </button>
-              <button class="ag-button" type="button" id="pro-players-btn">
-                <span class="os-icon" data-icon="users"></span>
-                <span data-i18n="proPlayers.title">Pro players</span>
-              </button>
-            </div>
           </div>
         </section>
+
+        <!-- Shape, actions and favorites -->
+        <div class="ag-section os-side">
+          <!-- Shape -->
+          <fieldset class="os-group">
+            <legend class="os-group__title" data-i18n="group.shape">Shape</legend>
+            <div class="os-slider">
+              <label class="ag-field__label" for="area-radius" data-i18n="area.radius">Corner radius</label>
+              <input class="os-range" type="range" id="area-radius" min="0" max="100" step="1" value="0" />
+              <span class="os-unit os-unit--sm" data-unit="%">
+                <input class="ag-input" type="text" inputmode="numeric" autocomplete="off" id="radius-value" aria-labelledby="radius-label-num" />
+              </span>
+              <span class="ag-visually-hidden" id="radius-label-num" data-i18n="area.radius">Corner radius</span>
+            </div>
+            <div class="os-slider">
+              <label class="ag-field__label" for="area-rotation" data-i18n="area.rotation">Rotation</label>
+              <input class="os-range" type="range" id="area-rotation" min="-180" max="180" step="1" value="0" />
+              <span class="os-unit os-unit--sm" data-unit="°">
+                <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" id="rotation-value" aria-labelledby="rotation-label-num" />
+              </span>
+              <span class="ag-visually-hidden" id="rotation-label-num" data-i18n="area.rotation">Rotation</span>
+            </div>
+            <p class="os-note" data-note="shape" role="status"></p>
+          </fieldset>
+
+          <div class="ag-cluster os-config__actions">
+            <button class="ag-button ag-button--solid" type="button" id="save-favorite">
+              <span data-i18n="favorites.save">Save as favorite</span>
+            </button>
+            <button class="ag-button" type="button" id="pro-players-btn">
+              <span class="os-icon" data-icon="users"></span>
+              <span data-i18n="proPlayers.title">Pro players</span>
+            </button>
+          </div>
+
+          <section class="os-favorites" id="favorites" aria-labelledby="favorites-title"></section>
+        </div>
       </div>
 
-      <section class="ag-section os-favorites" id="favorites" aria-labelledby="favorites-title"></section>
     </main>
 
     <footer class="ag-footer">

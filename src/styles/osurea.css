@@ -12,7 +12,7 @@
 }
 /* An application wants a wider column than the kit's reading column. */
 body {
-  --ag-container: 88rem;
+  --ag-container: 120rem;
 }
 
 [hidden] {
@@ -40,15 +40,57 @@ body {
 
 .os-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 26rem);
+  grid-template-areas: 'stage' 'config' 'side';
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: var(--ag-space-7) var(--ag-space-8);
+  gap: var(--ag-space-7) var(--ag-space-7);
+}
+.os-stage {
+  grid-area: stage;
+}
+.os-config {
+  grid-area: config;
+}
+.os-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--ag-space-5);
+  grid-area: side;
+}
+.os-favorites {
+  margin-top: var(--ag-space-5);
 }
 
-/* One screen: on a desktop window, preview and settings fill the height
-   left under the header, and the preview grows to use it. Settings taller
-   than the window (a very short one) let the page scroll rather than hide. */
-@media (min-width: 961px) and (min-height: 560px) {
+/* Mid-size screens: settings on the right; shape, actions and favorites
+   under the preview, where the room is */
+@media (min-width: 961px) and (max-width: 1279px) {
+  .os-workbench {
+    grid-template-areas: 'stage config' 'side config';
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  }
+  .os-favorites {
+    margin-top: 0;
+  }
+}
+/* Wide screens: preview · settings · shape, actions and favorites */
+@media (min-width: 1280px) {
+  .os-workbench {
+    grid-template-areas: 'stage config side';
+    grid-template-columns:
+      minmax(0, 1fr) clamp(17rem, 19vw, 21rem)
+      clamp(17rem, 19vw, 21rem);
+  }
+  .os-favorites {
+    margin-top: 0;
+  }
+}
+
+/* One screen: on a desktop window the tool fills the height left under the
+   header. The preview and the favorites take the room they are given (the
+   favorites list scrolls inside its column); the settings set the height
+   when the window is shorter than they are, and the page scrolls then. */
+@media (min-width: 1280px) and (min-height: 560px) {
   .os-workbench {
     min-height: calc(100svh - 61px - 2 * var(--ag-space-4));
     align-items: stretch;
@@ -57,15 +99,42 @@ body {
     display: flex;
     min-height: 0;
     flex-direction: column;
+    contain: size;
   }
   .os-stage .os-visualizer {
-    height: auto;
-    min-height: 240px;
-    flex: 1 1 0;
+    min-height: 200px;
+    flex: 0 1 auto;
   }
 }
-.os-favorites {
-  margin-top: var(--ag-space-10);
+@media (min-width: 1280px) and (min-height: 560px) {
+  /* Settings taller than the window (a custom tablet on a small laptop)
+     scroll inside their column; the page itself never does. The padding
+     keeps focus rings clear of the scroll edge. */
+  .os-config {
+    min-height: 0;
+    margin-inline: -4px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: 4px;
+    contain: size;
+    scrollbar-width: thin;
+  }
+  .os-side {
+    min-height: 0;
+    contain: size;
+  }
+  .os-favorites {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+  }
+  .os-favorites > .os-records,
+  .os-favorites > .ag-state {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 /* ================================================================ stage */
@@ -79,7 +148,11 @@ body {
 }
 .os-visualizer {
   position: relative;
-  height: clamp(380px, 66vh, 760px);
+  width: 100%;
+  /* The box takes the tablet's proportions (set by the visualizer), so the
+     tablet fills it instead of floating between empty bands. */
+  aspect-ratio: var(--os-tablet-ratio, 16 / 10);
+  max-height: 80svh;
   overflow: hidden;
   background: var(--ag-surface);
   user-select: none;
@@ -385,9 +458,12 @@ body {
 /* Slider: a label, the range, then its exact value. */
 .os-slider {
   display: grid;
-  grid-template-columns: 7rem minmax(0, 1fr) 5.5rem;
+  grid-template-columns: minmax(0, 1fr) 5.5rem;
   align-items: center;
-  gap: var(--ag-space-3);
+  gap: 0 var(--ag-space-3);
+}
+.os-slider > .ag-field__label {
+  grid-column: 1 / -1;
 }
 .os-range {
   width: 100%;
@@ -474,7 +550,11 @@ body {
 }
 .os-tablet__name {
   grid-column: 1;
+  min-width: 0;
+  overflow: hidden;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .os-tablet__trigger > svg {
   grid-column: 2;
@@ -488,6 +568,9 @@ body {
 }
 
 /* Floating panel: the kit's raised surface with its overlay shadow. */
+.os-popover.is-fixed {
+  position: fixed;
+}
 .os-popover {
   position: absolute;
   z-index: 40;
@@ -654,6 +737,52 @@ body {
 
 /* ============================================================ records */
 
+/* Favorites in the side column: a compact row (name, meta, actions) with
+   the preview on the right. */
+.os-side .os-records {
+  border-top-width: var(--ag-border-hair);
+}
+.os-side .ag-record {
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 4.5rem;
+  gap: var(--ag-space-2) var(--ag-space-3);
+  padding-block: var(--ag-space-3);
+}
+.os-side .ag-record__copy {
+  grid-column: 1;
+  grid-row: 1;
+  padding-right: 0;
+}
+.os-side .ag-record__title {
+  font: 600 var(--ag-text-md) / 1.25 var(--ag-font-sans);
+  letter-spacing: 0;
+}
+.os-side .ag-record__meta {
+  margin-top: 2px;
+  font-size: var(--ag-text-xs);
+}
+.os-side .ag-record__actions {
+  grid-column: 1;
+  grid-row: 2;
+  justify-content: flex-start;
+  gap: var(--ag-space-2);
+  padding-right: 0;
+}
+.os-side .ag-record__media {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+.os-side .ag-section__head {
+  margin-bottom: var(--ag-space-3);
+}
+.os-side .ag-section__title {
+  font-size: var(--ag-text-xl);
+}
+.os-side .ag-state--block {
+  padding-block: var(--ag-space-3);
+}
+
 .os-records {
   --ag-record-preview: 8.5rem;
 }
@@ -670,7 +799,6 @@ button.ag-record__primary {
 }
 .os-records .ag-record__copy,
 .os-dialog__head,
-.os-tablet__name,
 .os-option > span:first-child {
   overflow-wrap: anywhere;
 }
@@ -709,14 +837,6 @@ button.ag-record__primary {
 
 /* =========================================================== responsive */
 
-@media (max-width: 960px) {
-  .os-workbench {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .os-visualizer {
-    height: clamp(240px, 62vw, 520px);
-  }
-}
 @media (max-width: 620px) {
   /* Tools on one row: icons only, the label stays for screen readers */
   .os-stage__head {
@@ -771,28 +891,5 @@ button.ag-record__primary {
 @media (pointer: coarse) {
   .os-tools .ag-button {
     min-height: var(--ag-target);
-  }
-}
-/* Wide screens: settings on two columns, so they fit the window height
-   (a 1366 × 768 laptop included) and leave the preview most of the width */
-@media (min-width: 1280px) and (min-height: 560px) {
-  .os-workbench {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 40rem);
-  }
-  .os-config__body {
-    display: block;
-    columns: 2;
-    column-gap: var(--ag-space-7);
-  }
-  .os-config__body > * {
-    margin-bottom: var(--ag-space-5);
-    break-inside: avoid;
-  }
-  .os-slider {
-    grid-template-columns: minmax(0, 1fr) 5.5rem;
-    row-gap: 0;
-  }
-  .os-slider > .ag-field__label {
-    grid-column: 1 / -1;
   }
 }

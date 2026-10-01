@@ -89,6 +89,11 @@ function calculateScale() {
  */
 function renderTablet() {
   if (!tabletBoundary) return;
+  // The preview box takes the tablet's proportions (see .os-visualizer)
+  const ratio = `${state.tablet.width} / ${state.tablet.height}`;
+  if (container.style.getPropertyValue('--os-tablet-ratio') !== ratio) {
+    container.style.setProperty('--os-tablet-ratio', ratio);
+  }
   state.scale = calculateScale();
   tabletBoundary.style.width = `${state.tablet.width * state.scale}px`;
   tabletBoundary.style.height = `${state.tablet.height * state.scale}px`;
