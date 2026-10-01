@@ -127,5 +127,10 @@
   "readout.zone": "Zone {{zone}}",
   "readout.diff": "B par rapport à A",
   "readout.surface": "{{value}} % de surface",
-  "readout.same": "Même taille"
+  "readout.same": "Même taille",
+  "favorites.nameRequired": "Donne un nom à cette configuration.",
+  "error.number": "Entre un nombre, par ex. 76 ou 62,5",
+  "favorites.storageError": "Le favori n'a pas pu être enregistré : ce navigateur bloque le stockage pour la page.",
+  "favorites.storageBlockedTitle": "Ce navigateur bloque le stockage",
+  "favorites.storageBlockedBody": "Les favoris et réglages ne seront pas gardés après ton départ (fenêtre privée ou données de site bloquées)."
 }

@@ -403,7 +403,7 @@ function render(skip = null) {
  * @param {boolean} [options.immediate=false] - Save now rather than debounced
  */
 function commit({ history = true, skip = null, immediate = false } = {}) {
-  if (history) histories[state.activeZone].push(getActiveArea(state));
+  if (history) histories[state.activeZone].push(getActiveArea(state), state.tablet);
   render(skip);
   if (immediate) saveState();
   else debouncedSaveState();
@@ -411,8 +411,8 @@ function commit({ history = true, skip = null, immediate = false } = {}) {
 
 /** Record both zones (after a change of tablet or configuration) */
 function recordBothZones() {
-  histories.A.push(state.area);
-  histories.B.push(state.areaB);
+  histories.A.push(state.area, state.tablet);
+  histories.B.push(state.areaB, state.tablet);
 }
 
 // ============================================================================
@@ -619,20 +619,31 @@ function switchActiveZone(zone) {
   commit({ history: false, immediate: true });
 }
 
-function handleUndo() {
-  const previous = histories[state.activeZone].undo();
-  if (!previous) return;
-  Object.assign(getActiveArea(state), previous);
+/**
+ * Restore a history entry: the area, and its tablet when it changed since.
+ * The other zone is fitted to that tablet, so nothing is left outside it.
+ * @param {Object|null} entry
+ */
+function restoreEntry(entry) {
+  if (!entry) return;
+  const { tablet, ...area } = entry;
+  if (tablet && JSON.stringify(tablet) !== JSON.stringify(state.tablet)) {
+    state.tablet = normalizeTablet(tablet);
+    setCurrentTablet(state.tablet);
+  }
+  Object.assign(getActiveArea(state), area);
+  fitAreaToTablet(state, 'A');
+  fitAreaToTablet(state, 'B');
   clearNotes();
   commit({ history: false, immediate: true });
 }
 
+function handleUndo() {
+  restoreEntry(histories[state.activeZone].undo());
+}
+
 function handleRedo() {
-  const next = histories[state.activeZone].redo();
-  if (!next) return;
-  Object.assign(getActiveArea(state), next);
-  clearNotes();
-  commit({ history: false, immediate: true });
+  restoreEntry(histories[state.activeZone].redo());
 }
 
 /** Fill the custom ratio fields with the current ratio */
@@ -669,7 +680,7 @@ function showRecap() {
     surface: formatDecimal(area.width * area.height, 1),
     coverageX: formatDecimal((area.width / tablet.width) * 100, 1),
     coverageY: formatDecimal((area.height / tablet.height) * 100, 1),
-    position: `${formatDecimal(area.x)} ; ${formatDecimal(area.y)}`,
+    position: `X ${formatDecimal(area.x)} · Y ${formatDecimal(area.y)}`,
     radius: area.radius,
     rotation: area.rotation,
   };
@@ -684,6 +695,7 @@ function showRecap() {
 }
 
 function onLocaleChanged() {
+  clearNotes();
   render();
   renderDragHint();
   renderFavorites();
@@ -701,20 +713,43 @@ function setupControls() {
   setupLanguageToggles(DOM.langButtons, onLocaleChanged);
   setupFields();
 
-  // Sliders: they snap (radius 0 / 50 / 100, rotation by quarter turns)
+  // Sliders: they snap (radius 0 / 50 / 100, rotation by quarter turns).
+  // Notes change only when a gesture starts or ends: a note appearing while
+  // the thumb is dragged makes the browser drop the drag.
+  for (const slider of [DOM.radiusSlider, DOM.rotationSlider]) {
+    slider?.addEventListener('pointerdown', clearNotes);
+    slider?.addEventListener('keydown', clearNotes);
+  }
   DOM.radiusSlider?.addEventListener('input', () => {
-    clearNotes();
     updateRadius(state, Number(DOM.radiusSlider.value), true);
     commit({ history: false });
   });
   DOM.radiusSlider?.addEventListener('change', () => commit());
+
+  // Rotation: every angle of a gesture starts from the size the area had
+  // before it, so trying 45° then coming back to 0° gives the size back.
+  let rotationGesture = null;
   DOM.rotationSlider?.addEventListener('input', () => {
-    clearNotes();
+    const area = getActiveArea(state);
+    const g = rotationGesture;
+    if (!g || g.zone !== state.activeZone || g.width !== area.width || g.height !== area.height) {
+      rotationGesture = {
+        zone: state.activeZone,
+        base: { width: area.width, height: area.height, x: area.x, y: area.y },
+      };
+    }
+    Object.assign(area, rotationGesture.base);
     const { shrunk } = updateRotation(state, Number(DOM.rotationSlider.value), true);
+    Object.assign(rotationGesture, { width: area.width, height: area.height, shrunk });
     commit({ history: false });
-    if (shrunk) noteShrunk('shape');
   });
-  DOM.rotationSlider?.addEventListener('change', () => commit());
+  DOM.rotationSlider?.addEventListener('change', () => {
+    commit();
+    if (rotationGesture?.shrunk) noteShrunk('shape');
+  });
+  DOM.rotationSlider?.addEventListener('blur', () => {
+    rotationGesture = null;
+  });
 
   DOM.lockRatioBtn?.addEventListener('click', () => {
     state.lockRatio = !state.lockRatio;

@@ -10,23 +10,28 @@ import { MAX_HISTORY_SIZE } from '../constants/index.js';
 const AREA_KEYS = ['x', 'y', 'width', 'height', 'radius', 'rotation'];
 
 /**
- * Copy the fields of an area that history tracks.
+ * Copy the fields of an area that history tracks, with the tablet it was
+ * set on: undoing past a change of tablet brings that tablet back too.
  * @param {Object} area
+ * @param {Object} [tablet]
  * @returns {Object}
  */
-function snapshot(area) {
+function snapshot(area, tablet) {
   const copy = {};
   for (const key of AREA_KEYS) copy[key] = area[key] ?? 0;
+  if (tablet) copy.tablet = { ...tablet };
   return copy;
 }
+
+const sameTablet = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /**
  * @param {Object} a
  * @param {Object} b
  * @returns {boolean}
  */
-function sameArea(a, b) {
-  return AREA_KEYS.every(key => (a[key] ?? 0) === (b[key] ?? 0));
+function sameEntry(a, b) {
+  return AREA_KEYS.every(key => (a[key] ?? 0) === (b[key] ?? 0)) && sameTablet(a.tablet, b.tablet);
 }
 
 /**
@@ -42,10 +47,13 @@ export function createHistory(limit = MAX_HISTORY_SIZE) {
   let future = [];
 
   return {
-    /** @param {Object} area - State reached after a change */
-    push(area) {
-      const entry = snapshot(area);
-      if (past.length > 0 && sameArea(past[past.length - 1], entry)) return;
+    /**
+     * @param {Object} area - State reached after a change
+     * @param {Object} [tablet] - Tablet the area is on
+     */
+    push(area, tablet) {
+      const entry = snapshot(area, tablet);
+      if (past.length > 0 && sameEntry(past[past.length - 1], entry)) return;
       past.push(entry);
       if (past.length > limit) past.shift();
       future = [];
@@ -55,7 +63,7 @@ export function createHistory(limit = MAX_HISTORY_SIZE) {
     undo() {
       if (past.length < 2) return null;
       future.push(past.pop());
-      return { ...past[past.length - 1] };
+      return structuredClone(past[past.length - 1]);
     },
 
     /** @returns {Object|null} - Next area state, or null */
@@ -63,7 +71,7 @@ export function createHistory(limit = MAX_HISTORY_SIZE) {
       if (future.length === 0) return null;
       const next = future.pop();
       past.push(next);
-      return { ...next };
+      return structuredClone(next);
     },
 
     canUndo() {

@@ -221,6 +221,8 @@ export async function initTabletSelector(container, onChange = null) {
 
   triggerBtn = root.querySelector('#tablet-trigger');
   panel = root.querySelector('#tablet-panel');
+  // Focusable, so a click on a brand heading or a gap keeps the focus inside
+  panel.tabIndex = -1;
   searchInput = panel.querySelector('input');
   list = panel.querySelector('.os-popover__list');
   renderTrigger();

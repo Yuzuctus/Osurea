@@ -52,7 +52,9 @@ body {
 /* ================================================================ stage */
 
 /* On a wide screen the preview stays in view while the settings scroll. */
-@media (min-width: 961px) {
+/* Only where the whole preview fits in the window: a taller sticky block
+   would hide its own readout. */
+@media (min-width: 961px) and (min-height: 760px) {
   .os-stage {
     position: sticky;
     top: calc(60px + var(--ag-space-4));
@@ -465,6 +467,9 @@ body {
   background: var(--ag-surface-raised);
   box-shadow: var(--ag-shadow-overlay);
 }
+.os-popover:focus {
+  outline: none;
+}
 .os-popover__search {
   border-bottom: var(--ag-border-hair) solid var(--ag-rule-strong);
   padding: var(--ag-space-3);
@@ -628,6 +633,12 @@ button.ag-record__primary {
 }
 .os-records .ag-record__meta + .ag-record__meta {
   margin-top: 2px;
+}
+.os-records .ag-record__copy,
+.os-dialog__head,
+.os-tablet__name,
+.os-option > span:first-child {
+  overflow-wrap: anywhere;
 }
 .os-record__comment {
   max-width: 60ch;

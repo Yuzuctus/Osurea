@@ -272,6 +272,14 @@ function createAlignMenu() {
       closeAlignMenu();
     }
   });
+  // Focus landing anywhere else in the page (Tab, click) closes it
+  document.addEventListener('focusin', e => {
+    if (!menu.hidden && !menu.contains(e.target)) {
+      menu.hidden = true;
+      alignReturnFocus?.setAttribute('aria-expanded', 'false');
+      alignReturnFocus = null;
+    }
+  });
   return menu;
 }
 

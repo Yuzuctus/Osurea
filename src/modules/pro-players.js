@@ -15,6 +15,9 @@ let proPlayersData = null;
 /** @type {Function|null} - Callback when a player config is selected */
 let onSelect = null;
 
+/** @type {boolean} - A dialog is loading or open */
+let opening = false;
+
 /**
  * Fetch pro players data from JSON. A failed load is retried next time.
  * @returns {Promise<Array|null>} - null on failure
@@ -71,6 +74,17 @@ export function initProPlayers(onSelectPlayer = null) {
  * Open the pro players dialog (lazy-loads data on first open)
  */
 export async function openProPlayersModal() {
+  // A second click while the list loads must not open a second dialog
+  if (opening) return;
+  opening = true;
+  try {
+    await showProPlayers();
+  } finally {
+    opening = false;
+  }
+}
+
+async function showProPlayers() {
   const players = proPlayersData ?? (await fetchProPlayers());
 
   let body;

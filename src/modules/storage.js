@@ -216,15 +216,33 @@ export function getFavorites() {
 function saveFavorites(favorites) {
   try {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+    return true;
   } catch (e) {
     console.warn('Failed to save favorites:', e);
+    return false;
+  }
+}
+
+/**
+ * Whether this browser lets the page keep data (private modes and blocked
+ * site data throw on access)
+ * @returns {boolean}
+ */
+export function isStorageAvailable() {
+  try {
+    const key = 'osurea:probe';
+    localStorage.setItem(key, '1');
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
   }
 }
 
 /**
  * Add a new favorite
  * @param {object} config - { name, comment, tablet, area }
- * @returns {Favorite} - Created favorite with id and createdAt
+ * @returns {Favorite|null} - Created favorite, or null when it could not be stored
  */
 export function addFavorite(config) {
   const favorites = getFavorites();
@@ -239,9 +257,7 @@ export function addFavorite(config) {
   };
 
   favorites.unshift(favorite);
-  saveFavorites(favorites);
-
-  return favorite;
+  return saveFavorites(favorites) ? favorite : null;
 }
 
 /**

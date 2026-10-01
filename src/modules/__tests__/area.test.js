@@ -276,3 +276,24 @@ describe('updateRotation', () => {
     expect(halfH * 2).toBeLessThanOrEqual(95 + 1e-6);
   });
 });
+
+describe('history with tablets', () => {
+  it('brings the tablet back with the area', () => {
+    const history = createHistory();
+    const big = { brand: 'Wacom', model: 'M', width: 216, height: 135 };
+    const small = { brand: 'Wacom', model: 'S', width: 152, height: 95 };
+    history.push({ x: 108, y: 67.5, width: 216, height: 135 }, big);
+    history.push({ x: 76, y: 47.5, width: 152, height: 95 }, small);
+    const previous = history.undo();
+    expect(previous.tablet).toEqual(big);
+    expect(previous.width).toBe(216);
+  });
+
+  it('records a change of tablet even when the area is identical', () => {
+    const history = createHistory();
+    const area = { x: 50, y: 30, width: 80, height: 50 };
+    history.push(area, { width: 152, height: 95 });
+    history.push(area, { width: 160, height: 100 });
+    expect(history.canUndo()).toBe(true);
+  });
+});

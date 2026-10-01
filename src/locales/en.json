@@ -127,5 +127,10 @@
   "readout.zone": "Zone {{zone}}",
   "readout.diff": "B compared with A",
   "readout.surface": "{{value}} % surface",
-  "readout.same": "Same size"
+  "readout.same": "Same size",
+  "favorites.nameRequired": "Give this configuration a name.",
+  "error.number": "Enter a number, e.g. 76 or 62.5",
+  "favorites.storageError": "The favorite could not be saved: this browser blocks storage for the page.",
+  "favorites.storageBlockedTitle": "This browser blocks storage",
+  "favorites.storageBlockedBody": "Favorites and settings cannot be kept after you leave (private window or blocked site data)."
 }
