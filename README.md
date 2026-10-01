@@ -2,7 +2,7 @@
 
 Tablet area visualizer for osu! players: pick your tablet, set the active area to the tenth of a millimetre, compare two zones side by side, save favorites in your browser and load pro player presets. Interface in English, French and Spanish, light and dark themes.
 
-Live: <https://osurea.pages.dev/>
+Live: <https://osurea.yuzuctus.fr/>
 
 ## Features
 
