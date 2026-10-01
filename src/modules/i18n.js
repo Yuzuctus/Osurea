@@ -6,35 +6,25 @@
 
 import { STORAGE_KEYS, SUPPORTED_LOCALES, DEFAULT_LOCALE } from '../constants/index.js';
 
-/** @type {Object<string, Object>} - Cached locale data */
-const locales = {};
+// The three locales ship with the app (about 4 kB gzipped together): a
+// separate request would show the English page first to everyone else.
+import en from '../locales/en.json';
+import fr from '../locales/fr.json';
+import es from '../locales/es.json';
+
+/** @type {Object<string, Object>} - Locale data */
+const locales = { en, fr, es };
 
 let currentLocale = DEFAULT_LOCALE;
 let translations = {};
 
 /**
- * Load a specific locale using dynamic import for better code splitting
- * @param {string} locale - Locale code to load
- * @returns {Promise<Object>} - Loaded translations
+ * Get a locale's translations (English when unknown)
+ * @param {string} locale - Locale code
+ * @returns {Promise<Object>} - Translations
  */
 async function loadLocale(locale) {
-  if (locales[locale]) {
-    return locales[locale];
-  }
-
-  try {
-    // Use dynamic import for better tree-shaking
-    const module = await import(`../locales/${locale}.json`);
-    locales[locale] = module.default;
-    return module.default;
-  } catch (error) {
-    console.warn(`Failed to load locale ${locale}:`, error);
-    // Fallback to English if available
-    if (locale !== DEFAULT_LOCALE && locales[DEFAULT_LOCALE]) {
-      return locales[DEFAULT_LOCALE];
-    }
-    return {};
-  }
+  return locales[locale] ?? locales[DEFAULT_LOCALE];
 }
 
 /**
@@ -67,13 +57,7 @@ function detectLocale() {
 export async function initI18n() {
   currentLocale = detectLocale();
 
-  // Load only the active locale (and fallback English if different)
   translations = await loadLocale(currentLocale);
-
-  // Also load English as fallback if not the current locale
-  if (currentLocale !== DEFAULT_LOCALE) {
-    await loadLocale(DEFAULT_LOCALE);
-  }
 
   translatePage();
 

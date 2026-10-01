@@ -13,9 +13,11 @@ import {
   removeFavorite,
   updateFavorite,
   normalizeArea,
+  isStorageAvailable,
 } from './storage.js';
 import { announce, confirmDelete, showEditFavoriteModal, showSaveFavoriteModal } from './modal.js';
-import { calculateRatioString, clamp, clampCentre, escapeHtml, formatNumber } from './utils.js';
+import { calculateRatioString, clamp, escapeHtml, formatDecimal } from './utils.js';
+import { fitAreaToTablet } from '../controllers/areaController.js';
 import { generatePreview } from './preview.js';
 
 /** @type {HTMLElement|null} */
@@ -71,7 +73,7 @@ function renderFavoriteRow(favorite) {
   const name = escapeHtml(favorite.name);
   const meta = [
     escapeHtml(tablet.isCustom ? t('tablet.custom') : `${tablet.brand} ${tablet.model}`),
-    `${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)} mm`,
+    `${formatDecimal(area.width, 1)} × ${formatDecimal(area.height, 1)} mm`,
     calculateRatioString(area.width, area.height),
     formatDate(favorite.createdAt),
   ].filter(Boolean);
@@ -132,6 +134,13 @@ export function renderFavorites() {
         </div>`
       : '';
 
+  const storageHtml = isStorageAvailable()
+    ? ''
+    : `<div class="ag-state ag-state--error" role="alert">
+        <p class="ag-state__title">${t('favorites.storageBlockedTitle')}</p>
+        <p class="ag-state__body">${t('favorites.storageBlockedBody')}</p>
+      </div>`;
+
   const contentHtml =
     sorted.length === 0
       ? `<div class="ag-state ag-state--block">
@@ -151,6 +160,7 @@ export function renderFavorites() {
       </div>
       ${sortHtml}
     </div>
+    ${storageHtml}
     ${contentHtml}
   `;
 }
@@ -166,12 +176,18 @@ async function editFavorite(id) {
   if (!result) return;
 
   const { tablet } = favorite;
-  const area = normalizeArea({ ...favorite.area, ...result });
+  const numbers = Object.fromEntries(
+    ['width', 'height', 'x', 'y', 'radius', 'rotation']
+      .filter(key => Number.isFinite(result[key]))
+      .map(key => [key, result[key]])
+  );
+  const area = normalizeArea({ ...favorite.area, ...numbers });
   area.width = clamp(area.width, 1, tablet.width);
   area.height = clamp(area.height, 1, tablet.height);
   area.radius = clamp(Math.round(area.radius), 0, 100);
   area.rotation = clamp(Math.round(area.rotation), -180, 180);
-  Object.assign(area, clampCentre(area, tablet));
+  // A rotation the size cannot take shrinks the area (ratio kept), like in the editor
+  fitAreaToTablet({ tablet, area, areaB: area, activeZone: 'A', lockRatio: true }, 'A');
 
   updateFavorite(id, {
     name: result.name?.trim() || favorite.name,
@@ -212,12 +228,18 @@ function focusRow(id, action) {
 
 /**
  * Save current configuration as favorite
+ * @param {Object} tablet
+ * @param {Object} area
+ * @param {string} [zone] - 'A' or 'B' in comparison mode, shown in the dialog
  */
-export async function saveCurrentAsFavorite(tablet, area) {
+export async function saveCurrentAsFavorite(tablet, area, zone = '') {
   const tabletName = tablet.isCustom ? t('tablet.custom') : `${tablet.brand} ${tablet.model}`;
-  const defaultName = `${tabletName} · ${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)}`;
+  const defaultName = `${tabletName} · ${formatDecimal(area.width, 1)} × ${formatDecimal(area.height, 1)}`;
 
-  const result = await showSaveFavoriteModal(defaultName);
+  const result = await showSaveFavoriteModal(
+    defaultName,
+    zone ? t('comparison.zone', { zone }) : ''
+  );
   if (!result || !result.name.trim()) return null;
 
   const favorite = addFavorite({
@@ -228,7 +250,7 @@ export async function saveCurrentAsFavorite(tablet, area) {
   });
 
   renderFavorites();
-  announce(t('notifications.saved'));
+  announce(t(favorite ? 'notifications.saved' : 'favorites.storageError'));
   return favorite;
 }
 

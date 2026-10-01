@@ -5,7 +5,7 @@
  */
 
 import { t } from './i18n.js';
-import { calculateRatioString, escapeHtml, formatNumber } from './utils.js';
+import { calculateRatioString, escapeHtml, formatDecimal } from './utils.js';
 import { generatePreview } from './preview.js';
 import { announce, openDialog } from './modal.js';
 
@@ -14,6 +14,9 @@ let proPlayersData = null;
 
 /** @type {Function|null} - Callback when a player config is selected */
 let onSelect = null;
+
+/** @type {boolean} - A dialog is loading or open */
+let opening = false;
 
 /**
  * Fetch pro players data from JSON. A failed load is retried next time.
@@ -40,7 +43,7 @@ function renderPlayerRow(player, index) {
   const { tablet, area } = player;
   const meta = [
     escapeHtml(`${tablet.brand} ${tablet.model}`),
-    `${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)} mm`,
+    `${formatDecimal(area.width, 1)} × ${formatDecimal(area.height, 1)} mm`,
     calculateRatioString(area.width, area.height),
     area.rotation ? `${area.rotation}°` : '',
   ].filter(Boolean);
@@ -71,6 +74,17 @@ export function initProPlayers(onSelectPlayer = null) {
  * Open the pro players dialog (lazy-loads data on first open)
  */
 export async function openProPlayersModal() {
+  // A second click while the list loads must not open a second dialog
+  if (opening) return;
+  opening = true;
+  try {
+    await showProPlayers();
+  } finally {
+    opening = false;
+  }
+}
+
+async function showProPlayers() {
   const players = proPlayersData ?? (await fetchProPlayers());
 
   let body;

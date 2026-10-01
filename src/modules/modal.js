@@ -9,7 +9,8 @@
 
 import { t } from './i18n.js';
 import { icon } from './icons.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, formatDecimal } from './utils.js';
+import { parseDecimal } from './number-field.js';
 
 let dialogCount = 0;
 
@@ -138,7 +139,8 @@ function nameFields(name, comment) {
   return `
     <label class="ag-field">
       <span class="ag-field__label">${t('favorites.name')}</span>
-      <input class="ag-input" type="text" name="name" value="${escapeHtml(name)}" maxlength="80" required autofocus />
+      <input class="ag-input" type="text" name="name" value="${escapeHtml(name)}" maxlength="80"
+        required autofocus data-name />
     </label>
     <label class="ag-field">
       <span class="ag-field__label">${t('favorites.comment')}</span>
@@ -149,46 +151,86 @@ function nameFields(name, comment) {
 }
 
 /**
+ * Validate the dialog's fields as the user types, so the browser refuses to
+ * submit (and says why) instead of closing on a value that cannot be used:
+ * a name made of spaces, a number that is not one or is out of its range.
+ * @param {HTMLDialogElement} dialog
+ */
+function validateFields(dialog) {
+  const check = input => {
+    let message = '';
+    if (input.hasAttribute('data-name')) {
+      if (input.value.trim() === '') message = t('favorites.nameRequired');
+    } else if (input.hasAttribute('data-min')) {
+      const value = parseDecimal(input.value);
+      const min = Number(input.dataset.min);
+      const max = Number(input.dataset.max);
+      const { unit } = input.dataset;
+      if (value === null) message = t('error.number');
+      else if (value < min - 1e-9) message = t('error.min', { value: formatDecimal(min), unit });
+      else if (value > max + 1e-9) message = t('error.max', { value: formatDecimal(max), unit });
+    }
+    input.setCustomValidity(message);
+    input.setAttribute('aria-invalid', String(Boolean(message)));
+    const hint = input.closest('.ag-field')?.querySelector('.ag-field__hint');
+    if (hint) {
+      hint.textContent = message || hint.dataset.hint || '';
+      hint.classList.toggle('is-error', Boolean(message));
+    }
+  };
+  dialog.querySelectorAll('[data-name], [data-min]').forEach(input => {
+    check(input);
+    input.addEventListener('input', () => check(input));
+  });
+}
+
+/**
  * Ask for a favorite's name and comment.
  * @param {string} defaultName
+ * @param {string} [kicker] - e.g. the zone being saved in comparison mode
  * @returns {Promise<{name: string, comment: string}|null>}
  */
-export async function showSaveFavoriteModal(defaultName = '') {
+export async function showSaveFavoriteModal(defaultName = '', kicker = '') {
   const { value, data } = await openDialog({
     title: t('favorites.save'),
+    kicker,
     body: `<div class="ag-stack">${nameFields(defaultName, '')}</div>`,
     actions: [
       { label: t('modal.cancel'), value: '', variant: 'ag-button--quiet' },
       { label: t('modal.save'), value: 'save', submit: true, variant: 'ag-button--solid' },
     ],
+    onOpen: validateFields,
   });
   if (value !== 'save') return null;
   return { name: data.name ?? '', comment: data.comment ?? '' };
 }
 
 /**
- * A number field for the edit dialog.
+ * A number field for the edit dialog: text, so "60,5" and "60.5" both work.
  */
-function numberField(name, label, value, { min, max, step = 'any', unit = 'mm' }) {
+function numberField(name, label, value, { min, max, unit = 'mm', integer = false }) {
+  const hint = t('hint.range', { min: formatDecimal(min, 1), max: formatDecimal(max, 1), unit });
   return `
-    <label class="ag-field">
-      <span class="ag-field__label">${label}</span>
+    <div class="ag-field">
+      <label class="ag-field__label" for="edit-${name}">${label}</label>
       <span class="os-unit" data-unit="${unit}">
-        <input class="ag-input" type="number" name="${name}" value="${value}" inputmode="decimal"
-          step="${step}" ${min !== undefined ? `min="${min}"` : ''} ${max !== undefined ? `max="${max}"` : ''} required />
+        <input class="ag-input" type="text" id="edit-${name}" name="${name}" value="${formatDecimal(value)}"
+          inputmode="${integer ? 'numeric' : 'decimal'}" autocomplete="off" spellcheck="false"
+          data-min="${min}" data-max="${max}" data-unit="${unit}" aria-describedby="edit-${name}-hint" required />
       </span>
-    </label>
+      <span class="ag-field__hint" id="edit-${name}-hint" data-hint="${escapeHtml(hint)}">${hint}</span>
+    </div>
   `;
 }
 
 /**
  * Edit a favorite: name, comment and the whole area, bounded by its tablet.
+ * Numbers come back parsed; the caller keeps the area on the tablet.
  * @param {Object} favorite
- * @returns {Promise<Object|null>} - Raw form values, or null when dismissed
+ * @returns {Promise<Object|null>} - Values, or null when dismissed
  */
 export async function showEditFavoriteModal(favorite) {
   const { area, tablet } = favorite;
-  const round = v => Math.round(v * 1000) / 1000;
   const body = `
     <div class="ag-stack">
       ${nameFields(favorite.name || '', favorite.comment || '')}
@@ -196,16 +238,16 @@ export async function showEditFavoriteModal(favorite) {
         tablet.isCustom ? t('tablet.custom') : `${tablet.brand} ${tablet.model}`.trim()
       )}</p>
       <div class="os-pair">
-        ${numberField('width', t('area.width'), round(area.width), { min: 1, max: tablet.width })}
-        ${numberField('height', t('area.height'), round(area.height), { min: 1, max: tablet.height })}
+        ${numberField('width', t('area.width'), area.width, { min: 1, max: tablet.width })}
+        ${numberField('height', t('area.height'), area.height, { min: 1, max: tablet.height })}
       </div>
       <div class="os-pair">
-        ${numberField('x', t('area.x'), round(area.x), { min: 0, max: tablet.width })}
-        ${numberField('y', t('area.y'), round(area.y), { min: 0, max: tablet.height })}
+        ${numberField('x', t('area.x'), area.x, { min: 0, max: tablet.width })}
+        ${numberField('y', t('area.y'), area.y, { min: 0, max: tablet.height })}
       </div>
       <div class="os-pair">
-        ${numberField('radius', t('area.radius'), area.radius || 0, { min: 0, max: 100, step: '1', unit: '%' })}
-        ${numberField('rotation', t('area.rotation'), area.rotation || 0, { min: -180, max: 180, step: '1', unit: '°' })}
+        ${numberField('radius', t('area.radius'), area.radius || 0, { min: 0, max: 100, unit: '%', integer: true })}
+        ${numberField('rotation', t('area.rotation'), area.rotation || 0, { min: -180, max: 180, unit: '°', integer: true })}
       </div>
     </div>
   `;
@@ -218,8 +260,14 @@ export async function showEditFavoriteModal(favorite) {
       { label: t('modal.cancel'), value: '', variant: 'ag-button--quiet' },
       { label: t('modal.save'), value: 'save', submit: true, variant: 'ag-button--solid' },
     ],
+    onOpen: validateFields,
   });
-  return value === 'save' ? data : null;
+  if (value !== 'save') return null;
+  const result = { name: data.name ?? '', comment: data.comment ?? '' };
+  for (const key of ['width', 'height', 'x', 'y', 'radius', 'rotation']) {
+    result[key] = parseDecimal(data[key]);
+  }
+  return result;
 }
 
 /**

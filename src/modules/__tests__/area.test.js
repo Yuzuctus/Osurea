@@ -197,3 +197,103 @@ describe('sortFavorites', () => {
     expect(sortFavorites(favs, 'area', 'desc').map(f => f.name)).toEqual(['a', 'b', 'c']);
   });
 });
+
+describe('parseDecimal', () => {
+  it('reads comma and point decimals, units and spaces', async () => {
+    const { parseDecimal } = await import('../number-field.js');
+    expect(parseDecimal('42,75')).toBe(42.75);
+    expect(parseDecimal('42.75')).toBe(42.75);
+    expect(parseDecimal(' 42 mm')).toBe(42);
+    expect(parseDecimal('-90°')).toBe(-90);
+    expect(parseDecimal(',5')).toBe(0.5);
+  });
+
+  it('returns null for text that is not a number yet', async () => {
+    const { parseDecimal } = await import('../number-field.js');
+    for (const text of ['', '-', 'abc', '4,2,1', '1e5']) expect(parseDecimal(text)).toBeNull();
+  });
+});
+
+describe('size limits', () => {
+  it('limits a locked width by the height it would give', async () => {
+    const { getSizeLimits } = await import('../../controllers/areaController.js');
+    const state = makeState({
+      area: { width: 90, height: 90, x: 76, y: 47.5, radius: 0, rotation: 0 },
+    });
+    const { width } = getSizeLimits(state);
+    expect(width.max).toBeCloseTo(95);
+    expect(width.reason).toBe('ratio');
+  });
+
+  it('uses the tablet size when unlocked and straight', async () => {
+    const { getSizeLimits } = await import('../../controllers/areaController.js');
+    const limits = getSizeLimits(makeState({ lockRatio: false }));
+    expect(limits.width).toMatchObject({ max: 152, reason: 'tablet' });
+    expect(limits.height).toMatchObject({ max: 95, reason: 'tablet' });
+  });
+
+  it('shrinks the limits under a rotation, and the max still fits', async () => {
+    const { getSizeLimits, setAreaSide } = await import('../../controllers/areaController.js');
+    const state = makeState({
+      area: { width: 50, height: 30, x: 76, y: 47.5, radius: 0, rotation: 45 },
+    });
+    const { width } = getSizeLimits(state);
+    expect(width.reason).toBe('rotation');
+    setAreaSide(state, 'width', 1000);
+    const { halfW, halfH } = getHalfExtents(state.area);
+    expect(halfW * 2).toBeLessThanOrEqual(152 + 1e-6);
+    expect(halfH * 2).toBeLessThanOrEqual(95 + 1e-6);
+  });
+
+  it('gives the centre range of the area', async () => {
+    const { getPositionLimits } = await import('../../controllers/areaController.js');
+    const { x, y } = getPositionLimits(makeState());
+    expect(x).toEqual({ min: 50, max: 102 });
+    expect(y).toEqual({ min: 31.25, max: 63.75 });
+  });
+});
+
+describe('swapDimensions', () => {
+  it('swaps and shrinks to fit, keeping the swapped ratio', async () => {
+    const { swapDimensions } = await import('../../controllers/areaController.js');
+    const state = makeState({ lockRatio: false });
+    const shrunk = swapDimensions(state);
+    expect(shrunk).toBe(true);
+    expect(state.area.height).toBeCloseTo(95);
+    expect(state.area.width / state.area.height).toBeCloseTo(62.5 / 100);
+  });
+});
+
+describe('updateRotation', () => {
+  it('reports when the area had to shrink', () => {
+    const state = makeState({
+      area: { width: 152, height: 95, x: 76, y: 47.5, radius: 0, rotation: 0 },
+    });
+    const result = updateRotation(state, 30);
+    expect(result.shrunk).toBe(true);
+    const { halfW, halfH } = getHalfExtents(state.area);
+    expect(halfW * 2).toBeLessThanOrEqual(152 + 1e-6);
+    expect(halfH * 2).toBeLessThanOrEqual(95 + 1e-6);
+  });
+});
+
+describe('history with tablets', () => {
+  it('brings the tablet back with the area', () => {
+    const history = createHistory();
+    const big = { brand: 'Wacom', model: 'M', width: 216, height: 135 };
+    const small = { brand: 'Wacom', model: 'S', width: 152, height: 95 };
+    history.push({ x: 108, y: 67.5, width: 216, height: 135 }, big);
+    history.push({ x: 76, y: 47.5, width: 152, height: 95 }, small);
+    const previous = history.undo();
+    expect(previous.tablet).toEqual(big);
+    expect(previous.width).toBe(216);
+  });
+
+  it('records a change of tablet even when the area is identical', () => {
+    const history = createHistory();
+    const area = { x: 50, y: 30, width: 80, height: 50 };
+    history.push(area, { width: 152, height: 95 });
+    history.push(area, { width: 160, height: 100 });
+    expect(history.canUndo()).toBe(true);
+  });
+});

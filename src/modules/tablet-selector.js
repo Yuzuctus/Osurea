@@ -8,7 +8,7 @@
 import { icon } from './icons.js';
 import { t } from './i18n.js';
 import { DEFAULT_TABLET } from '../constants/index.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml, formatDecimal } from './utils.js';
 
 /** @type {Array<{brand: string, model: string, width: number, height: number}>} */
 let tablets = [];
@@ -77,7 +77,7 @@ function renderTrigger() {
     name.textContent = t('tablet.select');
     return;
   }
-  const size = `${Number(selectedTablet.width.toFixed(1))} × ${Number(selectedTablet.height.toFixed(1))} mm`;
+  const size = `${formatDecimal(selectedTablet.width, 1)} × ${formatDecimal(selectedTablet.height, 1)} mm`;
   kicker.textContent = `${t('tablet.title')} · ${size}`;
   name.textContent = selectedTablet.isCustom
     ? t('tablet.custom')
@@ -131,7 +131,7 @@ function renderList() {
                 isSelected(model) ? 'aria-current="true"' : ''
               }>
                 <span>${escapeHtml(model.model)}</span>
-                <span class="os-option__size">${model.width} × ${model.height} mm</span>
+                <span class="os-option__size">${formatDecimal(model.width, 1)} × ${formatDecimal(model.height, 1)} mm</span>
               </button>`;
             })
             .join('')}
@@ -221,6 +221,8 @@ export async function initTabletSelector(container, onChange = null) {
 
   triggerBtn = root.querySelector('#tablet-trigger');
   panel = root.querySelector('#tablet-panel');
+  // Focusable, so a click on a brand heading or a gap keeps the focus inside
+  panel.tabIndex = -1;
   searchInput = panel.querySelector('input');
   list = panel.querySelector('.os-popover__list');
   renderTrigger();

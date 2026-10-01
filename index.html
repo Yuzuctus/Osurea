@@ -65,43 +65,33 @@
       <div class="os-workbench">
         <!-- Preview -->
         <section class="ag-section os-stage" aria-labelledby="stage-title">
-          <div class="ag-section__head">
+          <div class="ag-section__head os-stage__head">
             <h2 class="ag-visually-hidden" id="stage-title" data-i18n="area.stage">Preview</h2>
             <div class="ag-cluster os-tools">
-              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="toggle-grid" aria-pressed="true">
+              <button class="ag-button ag-button--quiet" type="button" id="toggle-grid" aria-pressed="true">
                 <span class="os-icon" data-icon="grid"></span><span data-i18n="area.grid">Grid</span>
               </button>
-              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="full-area">
+              <button class="ag-button ag-button--quiet" type="button" id="full-area">
                 <span class="os-icon" data-icon="crop"></span><span data-i18n="area.fullArea">Full area</span>
               </button>
-              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="align-area" aria-haspopup="true" aria-expanded="false">
-                <span class="os-icon" data-icon="crosshairs"></span><span data-i18n="area.align">Align</span>
-              </button>
-              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="show-recap">
+              <button class="ag-button ag-button--quiet" type="button" id="show-recap">
                 <span class="os-icon" data-icon="info"></span><span data-i18n="area.recap">Summary</span>
+              </button>
+            </div>
+            <div class="ag-cluster os-tools os-tools--history">
+              <button class="ag-button ag-button--icon ag-button--quiet" type="button" id="undo" disabled data-i18n-aria-label="history.undo" data-i18n-title="history.undo" aria-label="Undo">
+                <span class="os-icon" data-icon="undo"></span>
+              </button>
+              <button class="ag-button ag-button--icon ag-button--quiet" type="button" id="redo" disabled data-i18n-aria-label="history.redo" data-i18n-title="history.redo" aria-label="Redo">
+                <span class="os-icon" data-icon="redo"></span>
               </button>
             </div>
           </div>
 
           <div id="visualizer" class="os-visualizer"></div>
 
-          <dl class="os-readout">
-            <div>
-              <dt class="ag-kicker" data-i18n="area.size">Area</dt>
-              <dd><span id="area-display">100 × 62.5</span> <small>mm</small></dd>
-            </div>
-            <div>
-              <dt class="ag-kicker" data-i18n="area.ratio">Ratio</dt>
-              <dd id="ratio-display">16:10</dd>
-            </div>
-            <div>
-              <dt class="ag-kicker" data-i18n="tablet.title">Tablet</dt>
-              <dd><span id="tablet-dimensions">152 × 95</span> <small>mm</small></dd>
-            </div>
-          </dl>
-          <p class="ag-meta os-hint" id="drag-hint" data-i18n="area.dragHint">
-            Drag the area, or focus it and use the arrow keys (Shift: 10 mm). Right-click to align.
-          </p>
+          <dl class="os-readout" id="readout"></dl>
+          <p class="ag-meta os-hint" id="drag-hint"></p>
         </section>
 
         <!-- Settings -->
@@ -113,9 +103,9 @@
             </div>
           </div>
 
-          <div class="ag-stack os-config__body">
+          <div class="os-config__body">
             <div class="os-compare">
-              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="toggle-comparison" aria-pressed="false">
+              <button class="ag-button ag-button--quiet" type="button" id="toggle-comparison" aria-pressed="false">
                 <span class="os-icon" data-icon="layers"></span>
                 <span data-i18n="comparison.toggle">Compare two zones</span>
               </button>
@@ -129,87 +119,130 @@
               </div>
             </div>
 
+            <!-- Custom tablet dimensions (custom mode only) -->
+            <fieldset class="os-group" id="custom-dimensions" hidden>
+              <legend class="os-group__title" data-i18n="tablet.customTitle">Tablet dimensions</legend>
+              <div class="os-pair">
+                <div class="ag-field">
+                  <label class="ag-field__label" for="custom-width" data-i18n="area.width">Width</label>
+                  <span class="os-unit" data-unit="mm">
+                    <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="custom-width" aria-describedby="custom-width-hint" />
+                  </span>
+                  <span class="ag-field__hint" id="custom-width-hint"></span>
+                </div>
+                <div class="ag-field">
+                  <label class="ag-field__label" for="custom-height" data-i18n="area.height">Height</label>
+                  <span class="os-unit" data-unit="mm">
+                    <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="custom-height" aria-describedby="custom-height-hint" />
+                  </span>
+                  <span class="ag-field__hint" id="custom-height-hint"></span>
+                </div>
+              </div>
+              <p class="os-note" data-note="tablet" role="status"></p>
+            </fieldset>
+
             <!-- Size -->
-            <div class="os-pair os-pair--lock">
-              <label class="ag-field">
-                <span class="ag-field__label" data-i18n="area.width">Width</span>
-                <span class="os-unit" data-unit="mm">
-                  <input class="ag-input" type="number" id="area-width" inputmode="decimal" step="any" min="1" value="100" />
-                </span>
-              </label>
-              <button class="ag-button ag-button--icon ag-button--quiet os-lock" type="button" id="lock-ratio" aria-pressed="true" aria-label="Lock the ratio" data-i18n-aria-label="area.lockRatio" data-i18n-title="area.lockRatio"></button>
-              <label class="ag-field">
-                <span class="ag-field__label" data-i18n="area.height">Height</span>
-                <span class="os-unit" data-unit="mm">
-                  <input class="ag-input" type="number" id="area-height" inputmode="decimal" step="any" min="1" value="62.5" />
-                </span>
-              </label>
-            </div>
+            <fieldset class="os-group">
+              <legend class="os-group__title" data-i18n="group.size">Size</legend>
+              <div class="os-pair os-pair--lock">
+                <div class="ag-field">
+                  <label class="ag-field__label" for="area-width" data-i18n="area.width">Width</label>
+                  <span class="os-unit" data-unit="mm">
+                    <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="area-width" aria-describedby="area-width-hint" />
+                  </span>
+                  <span class="ag-field__hint" id="area-width-hint"></span>
+                </div>
+                <button class="ag-button ag-button--icon ag-button--quiet os-lock" type="button" id="lock-ratio" aria-pressed="true" aria-label="Lock the ratio" data-i18n-aria-label="area.lockRatio" data-i18n-title="area.lockRatio"></button>
+                <div class="ag-field">
+                  <label class="ag-field__label" for="area-height" data-i18n="area.height">Height</label>
+                  <span class="os-unit" data-unit="mm">
+                    <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="area-height" aria-describedby="area-height-hint" />
+                  </span>
+                  <span class="ag-field__hint" id="area-height-hint"></span>
+                </div>
+              </div>
+
+              <div class="os-ratio">
+                <div class="os-ratio__head">
+                  <span class="ag-field__label" id="ratio-label" data-i18n="area.ratio">Ratio</span>
+                  <button class="ag-button ag-button--sm ag-button--ghost" type="button" id="swap-dimensions">
+                    <span class="os-icon" data-icon="swap"></span><span data-i18n="area.swap">Swap</span>
+                  </button>
+                </div>
+                <div class="ag-segmented ag-segmented--quiet os-ratios" role="group" aria-labelledby="ratio-label">
+                  <button class="ag-segmented__item" type="button" data-ratio="16:9" aria-pressed="false">16:9</button>
+                  <button class="ag-segmented__item" type="button" data-ratio="16:10" aria-pressed="false">16:10</button>
+                  <button class="ag-segmented__item" type="button" data-ratio="4:3" aria-pressed="false">4:3</button>
+                  <button class="ag-segmented__item" type="button" data-ratio="1:1" aria-pressed="false">1:1</button>
+                  <button class="ag-segmented__item" type="button" id="ratio-custom-toggle" aria-pressed="false" aria-controls="ratio-custom" aria-expanded="false" data-i18n="area.ratioCustom">Custom</button>
+                </div>
+                <div class="os-ratio__custom" id="ratio-custom" hidden>
+                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-w" aria-label="Ratio width" data-i18n-aria-label="area.ratioW" />
+                  <span aria-hidden="true">:</span>
+                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-h" aria-label="Ratio height" data-i18n-aria-label="area.ratioH" />
+                  <button class="ag-button" type="button" id="ratio-apply" data-i18n="area.ratioApply">Apply</button>
+                  <span class="ag-field__hint" data-i18n="area.ratioHint">e.g. 16:9, 4:3 or 1.6:1</span>
+                </div>
+              </div>
+              <p class="os-note" data-note="size" role="status"></p>
+            </fieldset>
 
             <!-- Position -->
-            <div class="os-pair">
-              <label class="ag-field">
-                <span class="ag-field__label" data-i18n="area.x">Centre X</span>
-                <span class="os-unit" data-unit="mm">
-                  <input class="ag-input" type="number" id="area-pos-x" inputmode="decimal" step="any" min="0" value="76" />
-                </span>
-              </label>
-              <label class="ag-field">
-                <span class="ag-field__label" data-i18n="area.y">Centre Y</span>
-                <span class="os-unit" data-unit="mm">
-                  <input class="ag-input" type="number" id="area-pos-y" inputmode="decimal" step="any" min="0" value="47.5" />
-                </span>
-              </label>
-            </div>
-
-            <!-- Ratio presets -->
-            <div class="ag-field">
-              <span class="ag-field__label" id="ratio-label" data-i18n="area.ratio">Ratio</span>
-              <div class="ag-segmented ag-segmented--quiet os-ratios" role="group" aria-labelledby="ratio-label">
-                <button class="ag-segmented__item" type="button" data-ratio="16:9" aria-pressed="false">16:9</button>
-                <button class="ag-segmented__item" type="button" data-ratio="16:10" aria-pressed="false">16:10</button>
-                <button class="ag-segmented__item" type="button" data-ratio="4:3" aria-pressed="false">4:3</button>
-                <button class="ag-segmented__item" type="button" data-ratio="1:1" aria-pressed="false">1:1</button>
-              </div>
-            </div>
-
-            <!-- Radius -->
-            <div class="os-slider">
-              <label class="ag-field__label" for="area-radius" data-i18n="area.radius">Corner radius</label>
-              <input class="os-range" type="range" id="area-radius" min="0" max="100" step="1" value="0" />
-              <span class="os-unit os-unit--sm" data-unit="%">
-                <input class="ag-input" type="number" id="radius-value" inputmode="numeric" min="0" max="100" value="0" aria-labelledby="radius-label-num" />
-              </span>
-              <span class="ag-visually-hidden" id="radius-label-num" data-i18n="area.radius">Corner radius</span>
-            </div>
-
-            <!-- Rotation -->
-            <div class="os-slider">
-              <label class="ag-field__label" for="area-rotation" data-i18n="area.rotation">Rotation</label>
-              <input class="os-range" type="range" id="area-rotation" min="-180" max="180" step="1" value="0" />
-              <span class="os-unit os-unit--sm" data-unit="°">
-                <input class="ag-input" type="number" id="rotation-value" inputmode="numeric" min="-180" max="180" value="0" aria-labelledby="rotation-label-num" />
-              </span>
-              <span class="ag-visually-hidden" id="rotation-label-num" data-i18n="area.rotation">Rotation</span>
-            </div>
-
-            <!-- Custom tablet dimensions (custom mode only) -->
-            <fieldset class="os-custom" id="custom-dimensions" hidden>
-              <legend class="ag-kicker" data-i18n="tablet.customTitle">Tablet dimensions</legend>
+            <fieldset class="os-group">
+              <legend class="os-group__title" data-i18n="group.position">Position</legend>
               <div class="os-pair">
-                <label class="ag-field">
-                  <span class="ag-field__label" data-i18n="area.width">Width</span>
+                <div class="ag-field">
+                  <label class="ag-field__label" for="area-pos-x" data-i18n="area.x">Centre X</label>
                   <span class="os-unit" data-unit="mm">
-                    <input class="ag-input" type="number" id="custom-width" inputmode="decimal" step="any" min="10" value="152" />
+                    <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="area-pos-x" aria-describedby="area-pos-x-hint" />
                   </span>
-                </label>
-                <label class="ag-field">
-                  <span class="ag-field__label" data-i18n="area.height">Height</span>
+                  <span class="ag-field__hint" id="area-pos-x-hint"></span>
+                </div>
+                <div class="ag-field">
+                  <label class="ag-field__label" for="area-pos-y" data-i18n="area.y">Centre Y</label>
                   <span class="os-unit" data-unit="mm">
-                    <input class="ag-input" type="number" id="custom-height" inputmode="decimal" step="any" min="10" value="95" />
+                    <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="area-pos-y" aria-describedby="area-pos-y-hint" />
                   </span>
-                </label>
+                  <span class="ag-field__hint" id="area-pos-y-hint"></span>
+                </div>
               </div>
+              <div class="os-align-inline">
+                <span class="ag-field__label" id="align-label" data-i18n="area.align">Align</span>
+                <div class="os-align__grid" role="group" aria-labelledby="align-label">
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="top-left" data-i18n-aria-label="alignment.top-left" data-i18n-title="alignment.top-left"><span class="os-icon" data-icon="alignTopLeft"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="top" data-i18n-aria-label="alignment.top" data-i18n-title="alignment.top"><span class="os-icon" data-icon="alignTop"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="top-right" data-i18n-aria-label="alignment.top-right" data-i18n-title="alignment.top-right"><span class="os-icon" data-icon="alignTopRight"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="left" data-i18n-aria-label="alignment.left" data-i18n-title="alignment.left"><span class="os-icon" data-icon="alignLeft"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="center" data-i18n-aria-label="alignment.center" data-i18n-title="alignment.center"><span class="os-icon" data-icon="alignCenter"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="right" data-i18n-aria-label="alignment.right" data-i18n-title="alignment.right"><span class="os-icon" data-icon="alignRight"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="bottom-left" data-i18n-aria-label="alignment.bottom-left" data-i18n-title="alignment.bottom-left"><span class="os-icon" data-icon="alignBottomLeft"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="bottom" data-i18n-aria-label="alignment.bottom" data-i18n-title="alignment.bottom"><span class="os-icon" data-icon="alignBottom"></span></button>
+                  <button class="ag-button ag-button--icon ag-button--quiet" type="button" data-align="bottom-right" data-i18n-aria-label="alignment.bottom-right" data-i18n-title="alignment.bottom-right"><span class="os-icon" data-icon="alignBottomRight"></span></button>
+                </div>
+              </div>
+              <p class="os-note" data-note="position" role="status"></p>
+            </fieldset>
+
+            <!-- Shape -->
+            <fieldset class="os-group">
+              <legend class="os-group__title" data-i18n="group.shape">Shape</legend>
+              <div class="os-slider">
+                <label class="ag-field__label" for="area-radius" data-i18n="area.radius">Corner radius</label>
+                <input class="os-range" type="range" id="area-radius" min="0" max="100" step="1" value="0" />
+                <span class="os-unit os-unit--sm" data-unit="%">
+                  <input class="ag-input" type="text" inputmode="numeric" autocomplete="off" id="radius-value" aria-labelledby="radius-label-num" />
+                </span>
+                <span class="ag-visually-hidden" id="radius-label-num" data-i18n="area.radius">Corner radius</span>
+              </div>
+              <div class="os-slider">
+                <label class="ag-field__label" for="area-rotation" data-i18n="area.rotation">Rotation</label>
+                <input class="os-range" type="range" id="area-rotation" min="-180" max="180" step="1" value="0" />
+                <span class="os-unit os-unit--sm" data-unit="°">
+                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" id="rotation-value" aria-labelledby="rotation-label-num" />
+                </span>
+                <span class="ag-visually-hidden" id="rotation-label-num" data-i18n="area.rotation">Rotation</span>
+              </div>
+              <p class="os-note" data-note="shape" role="status"></p>
             </fieldset>
 
             <div class="ag-cluster os-config__actions">

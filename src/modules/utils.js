@@ -5,6 +5,7 @@
  */
 
 import { COMMON_RATIOS, RATIO_TOLERANCE } from '../constants/index.js';
+import { getLocale } from './i18n.js';
 
 // Pre-compiled regex for HTML escaping (avoids regex creation on each call)
 const HTML_ESCAPE_REGEX = /[&<>"']/g;
@@ -128,7 +129,7 @@ export function calculateRatioString(width, height) {
 
   // If numbers are too large, just show decimal ratio
   if (simplifiedW > 100 || simplifiedH > 100) {
-    return `${ratio.toFixed(2)}:1`;
+    return `${formatDecimal(ratio, 2)}:1`;
   }
 
   return `${simplifiedW}:${simplifiedH}`;
@@ -154,6 +155,22 @@ export function formatNumber(value, decimals = 2) {
 export function formatInputNumber(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '';
   return String(Number(value.toFixed(3)));
+}
+
+/**
+ * Format a number for people, with the interface language's decimal
+ * separator (76 · 62,5 in French · 47.123 in English)
+ * @param {number} value
+ * @param {number} [maxDigits=3] - Maximum decimals, trailing zeros dropped
+ * @returns {string}
+ */
+export function formatDecimal(value, maxDigits = 3) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+  const rounded = Number(value.toFixed(maxDigits));
+  return new Intl.NumberFormat(getLocale(), {
+    maximumFractionDigits: maxDigits,
+    useGrouping: false,
+  }).format(Object.is(rounded, -0) ? 0 : rounded);
 }
 
 /**
