@@ -92,9 +92,6 @@
   "notifications.error": "Something went wrong",
   "footer.madeBy": "Made for osu! players",
   "footer.source": "Source code",
-  "group.size": "Size",
-  "group.position": "Position (centre)",
-  "group.shape": "Shape",
   "area.swap": "Swap",
   "area.ratioCustom": "Custom",
   "area.ratioW": "Ratio width",
@@ -132,5 +129,7 @@
   "help.label": "How it works",
   "footer.tabletSettings": "Tablet settings",
   "footer.spreadsheets": "Spreadsheets",
-  "footer.otherProjects": "Other projects"
+  "footer.otherProjects": "Other projects",
+  "group.sizePosition": "Size and position",
+  "group.aspect": "Aspect"
 }

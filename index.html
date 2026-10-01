@@ -69,6 +69,7 @@
                 <span class="os-icon" data-icon="info"></span><span data-i18n="area.recap">Summary</span>
               </button>
             </div>
+            <p class="os-status" id="status" role="status" aria-live="polite"></p>
             <div class="ag-cluster os-tools os-tools--history">
               <span class="ag-info os-help">
                 <button class="ag-info__button" type="button" id="help-button" aria-expanded="false" aria-controls="drag-hint" data-i18n-aria-label="help.label" aria-label="How it works">i</button>
@@ -135,9 +136,9 @@
               <p class="os-note" data-note="tablet" role="status"></p>
             </fieldset>
 
-            <!-- Size -->
+            <!-- Size and position -->
             <fieldset class="os-group">
-              <legend class="os-group__title" data-i18n="group.size">Size</legend>
+              <legend class="os-group__title" data-i18n="group.sizePosition">Size and position</legend>
               <div class="os-pair os-pair--lock">
                 <div class="ag-field">
                   <label class="ag-field__label" for="area-width" data-i18n="area.width">Width</label>
@@ -155,34 +156,7 @@
                   <span class="ag-field__hint" id="area-height-hint"></span>
                 </div>
               </div>
-
-              <div class="os-ratio">
-                <div class="os-ratio__head">
-                  <span class="ag-field__label" id="ratio-label" data-i18n="area.ratio">Ratio</span>
-                  <button class="ag-button ag-button--sm ag-button--ghost" type="button" id="swap-dimensions">
-                    <span class="os-icon" data-icon="swap"></span><span data-i18n="area.swap">Swap</span>
-                  </button>
-                </div>
-                <div class="ag-segmented ag-segmented--quiet os-ratios" role="group" aria-labelledby="ratio-label">
-                  <button class="ag-segmented__item" type="button" data-ratio="16:9" aria-pressed="false">16:9</button>
-                  <button class="ag-segmented__item" type="button" data-ratio="16:10" aria-pressed="false">16:10</button>
-                  <button class="ag-segmented__item" type="button" data-ratio="4:3" aria-pressed="false">4:3</button>
-                  <button class="ag-segmented__item" type="button" data-ratio="1:1" aria-pressed="false">1:1</button>
-                  <button class="ag-segmented__item" type="button" id="ratio-custom-toggle" aria-pressed="false" aria-controls="ratio-custom" aria-expanded="false" data-i18n="area.ratioCustom">Custom</button>
-                </div>
-                <div class="os-ratio__custom" id="ratio-custom" hidden>
-                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-w" placeholder="21" aria-label="Ratio width" data-i18n-aria-label="area.ratioW" />
-                  <span aria-hidden="true">:</span>
-                  <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-h" placeholder="9" aria-label="Ratio height" data-i18n-aria-label="area.ratioH" />
-                  <button class="ag-button" type="button" id="ratio-apply" data-i18n="area.ratioApply">Apply</button>
-                </div>
-              </div>
               <p class="os-note" data-note="size" role="status"></p>
-            </fieldset>
-
-            <!-- Position -->
-            <fieldset class="os-group">
-              <legend class="os-group__title" data-i18n="group.position">Position</legend>
               <div class="os-pair">
                 <div class="ag-field">
                   <label class="ag-field__label" for="area-pos-x" data-i18n="area.x">Centre X</label>
@@ -205,11 +179,31 @@
           </div>
         </section>
 
-        <!-- Shape, actions and favorites -->
-        <div class="ag-section os-side">
-          <!-- Shape -->
+        <!-- Aspect: ratio, corners, rotation; then the actions -->
+        <div class="ag-section os-aspect">
           <fieldset class="os-group">
-            <legend class="os-group__title" data-i18n="group.shape">Shape</legend>
+            <legend class="os-group__title" data-i18n="group.aspect">Aspect</legend>
+            <div class="os-ratio">
+              <div class="os-ratio__head">
+                <span class="ag-field__label" id="ratio-label" data-i18n="area.ratio">Ratio</span>
+                <button class="ag-button ag-button--sm ag-button--ghost" type="button" id="swap-dimensions">
+                  <span class="os-icon" data-icon="swap"></span><span data-i18n="area.swap">Swap</span>
+                </button>
+              </div>
+              <div class="ag-segmented ag-segmented--quiet os-ratios" role="group" aria-labelledby="ratio-label">
+                <button class="ag-segmented__item" type="button" data-ratio="16:9" aria-pressed="false">16:9</button>
+                <button class="ag-segmented__item" type="button" data-ratio="16:10" aria-pressed="false">16:10</button>
+                <button class="ag-segmented__item" type="button" data-ratio="4:3" aria-pressed="false">4:3</button>
+                <button class="ag-segmented__item" type="button" data-ratio="1:1" aria-pressed="false">1:1</button>
+                <button class="ag-segmented__item" type="button" id="ratio-custom-toggle" aria-pressed="false" aria-controls="ratio-custom" aria-expanded="false" data-i18n="area.ratioCustom">Custom</button>
+              </div>
+              <div class="os-ratio__custom" id="ratio-custom" hidden>
+                <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-w" placeholder="21" aria-label="Ratio width" data-i18n-aria-label="area.ratioW" />
+                <span aria-hidden="true">:</span>
+                <input class="ag-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" id="ratio-h" placeholder="9" aria-label="Ratio height" data-i18n-aria-label="area.ratioH" />
+                <button class="ag-button" type="button" id="ratio-apply" data-i18n="area.ratioApply">Apply</button>
+              </div>
+            </div>
             <div class="os-slider">
               <label class="ag-field__label" for="area-radius" data-i18n="area.radius">Corner radius</label>
               <input class="os-range" type="range" id="area-radius" min="0" max="100" step="1" value="0" />
@@ -238,9 +232,10 @@
               <span data-i18n="proPlayers.title">Pro players</span>
             </button>
           </div>
-
-          <section class="os-favorites" id="favorites" aria-labelledby="favorites-title"></section>
         </div>
+
+        <!-- Favorites -->
+        <section class="ag-section os-favorites" id="favorites" aria-labelledby="favorites-title"></section>
       </div>
 
     </main>

@@ -153,7 +153,7 @@ function selectTablet(tablet) {
 }
 
 /** Where the settings column scrolls on its own (see osurea.css, one screen) */
-const oneScreen = window.matchMedia('(min-width: 1280px) and (min-height: 560px)');
+const oneScreen = window.matchMedia('(min-width: 1280px) and (min-height: 720px)');
 
 /**
  * In the one-screen layout the settings column can scroll and would clip the

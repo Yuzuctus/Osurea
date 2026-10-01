@@ -92,9 +92,6 @@
   "notifications.error": "Une erreur est survenue",
   "footer.madeBy": "Fait pour les joueurs d'osu!",
   "footer.source": "Code source",
-  "group.size": "Taille",
-  "group.position": "Position (centre)",
-  "group.shape": "Forme",
   "area.swap": "Inverser",
   "area.ratioCustom": "Perso",
   "area.ratioW": "Largeur du ratio",
@@ -132,5 +129,7 @@
   "help.label": "Mode d’emploi",
   "footer.tabletSettings": "Réglages tablette",
   "footer.spreadsheets": "Feuilles de calcul",
-  "footer.otherProjects": "Autres projets"
+  "footer.otherProjects": "Autres projets",
+  "group.sizePosition": "Taille et position",
+  "group.aspect": "Aspect"
 }

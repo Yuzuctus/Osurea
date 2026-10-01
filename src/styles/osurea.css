@@ -40,10 +40,10 @@ body {
 
 .os-workbench {
   display: grid;
-  grid-template-areas: 'stage' 'config' 'side';
+  grid-template-areas: 'stage' 'config' 'aspect' 'favs';
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: var(--ag-space-7) var(--ag-space-7);
+  gap: var(--ag-space-7);
 }
 .os-stage {
   grid-area: stage;
@@ -51,46 +51,43 @@ body {
 .os-config {
   grid-area: config;
 }
-.os-side {
+.os-aspect {
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: var(--ag-space-5);
-  grid-area: side;
+  grid-area: aspect;
 }
 .os-favorites {
-  margin-top: var(--ag-space-5);
+  min-width: 0;
+  grid-area: favs;
 }
 
-/* Mid-size screens: settings on the right; shape, actions and favorites
-   under the preview, where the room is */
+/* Mid-size screens: settings beside the preview, favorites across below */
 @media (min-width: 961px) and (max-width: 1279px) {
   .os-workbench {
-    grid-template-areas: 'stage config' 'side config';
+    grid-template-areas: 'stage config' 'stage aspect' 'favs favs';
     grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
   }
-  .os-favorites {
-    margin-top: 0;
-  }
 }
-/* Wide screens: preview · settings · shape, actions and favorites */
+/* Wide screens: preview · size and position · aspect, and the favorites
+   across both settings columns below them */
 @media (min-width: 1280px) {
   .os-workbench {
-    grid-template-areas: 'stage config side';
+    grid-template-areas: 'stage config aspect' 'stage favs favs';
     grid-template-columns:
       minmax(0, 1fr) clamp(17rem, 19vw, 21rem)
       clamp(17rem, 19vw, 21rem);
-  }
-  .os-favorites {
-    margin-top: 0;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 }
 
-/* One screen: on a desktop window the tool fills the height left under the
-   header. The preview and the favorites take the room they are given (the
-   favorites list scrolls inside its column); the settings set the height
-   when the window is shorter than they are, and the page scrolls then. */
-@media (min-width: 1280px) and (min-height: 560px) {
+/* One screen: on a wide window the tool fills the height left under the
+   header. The preview takes the room it is given; the favorites take what
+   the settings leave and scroll inside their block. Shorter windows (a
+   1366 × 768 laptop) keep preview and settings on screen and let the
+   favorites follow below. */
+@media (min-width: 1280px) and (min-height: 720px) {
   .os-workbench {
     min-height: calc(100svh - 61px - 2 * var(--ag-space-4));
     align-items: stretch;
@@ -105,29 +102,11 @@ body {
     min-height: 200px;
     flex: 0 1 auto;
   }
-}
-@media (min-width: 1280px) and (min-height: 560px) {
-  /* Settings taller than the window (a custom tablet on a small laptop)
-     scroll inside their column; the page itself never does. The padding
-     keeps focus rings clear of the scroll edge. */
-  .os-config {
-    min-height: 0;
-    margin-inline: -4px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-inline: 4px;
-    contain: size;
-    scrollbar-width: thin;
-  }
-  .os-side {
-    min-height: 0;
-    contain: size;
-  }
   .os-favorites {
     display: flex;
-    min-height: 0;
-    flex: 1 1 0;
+    min-height: 9rem;
     flex-direction: column;
+    contain: size;
   }
   .os-favorites > .os-records,
   .os-favorites > .ag-state {
@@ -142,6 +121,20 @@ body {
 .os-stage__head {
   align-items: center;
   margin-bottom: var(--ag-space-3);
+}
+/* What the preview now shows ("Config loaded into zone A"), for a while */
+.os-status {
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+  color: var(--ag-ink);
+  font: 500 var(--ag-text-xs) / 1.3 var(--ag-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.os-status:not(:empty) {
+  border-left: var(--ag-border-mark) solid var(--ag-identity);
+  padding-left: var(--ag-space-2);
 }
 .os-tools {
   --ag-cluster-gap: var(--ag-space-2);
@@ -737,50 +730,50 @@ body {
 
 /* ============================================================ records */
 
-/* Favorites in the side column: a compact row (name, meta, actions) with
-   the preview on the right. */
-.os-side .os-records {
-  border-top-width: var(--ag-border-hair);
+/* Favorites: a grid of compact cards, filled left then right (two side
+   by side when there is room, one on a phone) */
+.os-favorites .os-records {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  /* Rows keep their content's height even when the list is a scroll box */
+  grid-auto-rows: max-content;
+  align-content: start;
+  column-gap: var(--ag-space-6);
 }
-.os-side .ag-record {
+.os-favorites .ag-record {
   min-height: 0;
   grid-template-columns: minmax(0, 1fr) 4.5rem;
+  align-items: start;
   gap: var(--ag-space-2) var(--ag-space-3);
   padding-block: var(--ag-space-3);
 }
-.os-side .ag-record__copy {
+.os-favorites .ag-record__copy {
   grid-column: 1;
   grid-row: 1;
   padding-right: 0;
 }
-.os-side .ag-record__title {
-  font: 600 var(--ag-text-md) / 1.25 var(--ag-font-sans);
+.os-favorites .ag-record__title {
+  font: 600 var(--ag-text-lg) / 1.15 var(--ag-font-sans);
   letter-spacing: 0;
 }
-.os-side .ag-record__meta {
+.os-favorites .ag-record__meta {
   margin-top: 2px;
   font-size: var(--ag-text-xs);
 }
-.os-side .ag-record__actions {
+.os-favorites .ag-record__actions {
   grid-column: 1;
   grid-row: 2;
   justify-content: flex-start;
   gap: var(--ag-space-2);
   padding-right: 0;
 }
-.os-side .ag-record__media {
+.os-favorites .ag-record__media {
   grid-column: 2;
   grid-row: 1 / span 2;
   align-self: center;
 }
-.os-side .ag-section__head {
-  margin-bottom: var(--ag-space-3);
-}
-.os-side .ag-section__title {
-  font-size: var(--ag-text-xl);
-}
-.os-side .ag-state--block {
-  padding-block: var(--ag-space-3);
+.os-favorites .os-preview {
+  max-height: 3rem;
 }
 
 .os-records {
@@ -839,8 +832,9 @@ button.ag-record__primary {
 
 @media (max-width: 620px) {
   /* Tools on one row: icons only, the label stays for screen readers */
-  .os-stage__head {
-    flex-wrap: nowrap;
+  .os-status {
+    order: 3;
+    flex-basis: 100%;
   }
   .os-tools .ag-button:not(.ag-button--icon) {
     width: var(--ag-target);
