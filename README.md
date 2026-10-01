@@ -7,9 +7,11 @@ Live: <https://osurea.yuzuctus.fr/>
 ## Features
 
 - 31 tablets (Wacom, Huion, XP-Pen, Gaomon, VEIKK, UGEE, Parblo) and custom dimensions
-- Width / height with ratio lock, ratio presets (16:9, 16:10, 4:3, 1:1), centre position, corner radius, rotation
-- Drag the area with mouse, pen or touch; once focused, the arrow keys move it (Shift: 10 mm); right-click or **Align** snaps it to an edge or corner
-- Comparison mode: two zones, each with its own undo history (Ctrl/Cmd + Z, Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y)
+- Width / height with ratio lock, ratio presets (16:9, 16:10, 4:3, 1:1) or a custom ratio, swap, centre position, corner radius, rotation
+- Forgiving fields: comma or point decimals, the allowed range under each field, out-of-range values flagged while typing and explained when adjusted, ↑ ↓ to step (Shift ×10, Alt ÷10), Escape to restore
+- The area never leaves the tablet, rotation included
+- Drag the area with mouse, pen or touch; once focused, the arrow keys move it (Shift: 10 mm); align it on any edge or corner
+- Comparison mode: two zones, the difference between them, and one undo history per zone (buttons, or Ctrl/Cmd + Z, Ctrl/Cmd + Shift + Z, Ctrl/Cmd + Y)
 - Summary with coverage and a copyable text version
 - Favorites stored in `localStorage` (name, comment, rotation included), sortable and editable
 

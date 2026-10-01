@@ -15,7 +15,7 @@ import {
   normalizeArea,
 } from './storage.js';
 import { announce, confirmDelete, showEditFavoriteModal, showSaveFavoriteModal } from './modal.js';
-import { calculateRatioString, clamp, clampCentre, escapeHtml, formatNumber } from './utils.js';
+import { calculateRatioString, clamp, clampCentre, escapeHtml, formatDecimal } from './utils.js';
 import { generatePreview } from './preview.js';
 
 /** @type {HTMLElement|null} */
@@ -71,7 +71,7 @@ function renderFavoriteRow(favorite) {
   const name = escapeHtml(favorite.name);
   const meta = [
     escapeHtml(tablet.isCustom ? t('tablet.custom') : `${tablet.brand} ${tablet.model}`),
-    `${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)} mm`,
+    `${formatDecimal(area.width, 1)} × ${formatDecimal(area.height, 1)} mm`,
     calculateRatioString(area.width, area.height),
     formatDate(favorite.createdAt),
   ].filter(Boolean);
@@ -212,12 +212,18 @@ function focusRow(id, action) {
 
 /**
  * Save current configuration as favorite
+ * @param {Object} tablet
+ * @param {Object} area
+ * @param {string} [zone] - 'A' or 'B' in comparison mode, shown in the dialog
  */
-export async function saveCurrentAsFavorite(tablet, area) {
+export async function saveCurrentAsFavorite(tablet, area, zone = '') {
   const tabletName = tablet.isCustom ? t('tablet.custom') : `${tablet.brand} ${tablet.model}`;
-  const defaultName = `${tabletName} · ${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)}`;
+  const defaultName = `${tabletName} · ${formatDecimal(area.width, 1)} × ${formatDecimal(area.height, 1)}`;
 
-  const result = await showSaveFavoriteModal(defaultName);
+  const result = await showSaveFavoriteModal(
+    defaultName,
+    zone ? t('comparison.zone', { zone }) : ''
+  );
   if (!result || !result.name.trim()) return null;
 
   const favorite = addFavorite({

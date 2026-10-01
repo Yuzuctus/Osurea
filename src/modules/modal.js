@@ -153,9 +153,10 @@ function nameFields(name, comment) {
  * @param {string} defaultName
  * @returns {Promise<{name: string, comment: string}|null>}
  */
-export async function showSaveFavoriteModal(defaultName = '') {
+export async function showSaveFavoriteModal(defaultName = '', kicker = '') {
   const { value, data } = await openDialog({
     title: t('favorites.save'),
+    kicker,
     body: `<div class="ag-stack">${nameFields(defaultName, '')}</div>`,
     actions: [
       { label: t('modal.cancel'), value: '', variant: 'ag-button--quiet' },

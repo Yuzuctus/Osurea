@@ -5,7 +5,7 @@
  */
 
 import { t } from './i18n.js';
-import { calculateRatioString, escapeHtml, formatNumber } from './utils.js';
+import { calculateRatioString, escapeHtml, formatDecimal } from './utils.js';
 import { generatePreview } from './preview.js';
 import { announce, openDialog } from './modal.js';
 
@@ -40,7 +40,7 @@ function renderPlayerRow(player, index) {
   const { tablet, area } = player;
   const meta = [
     escapeHtml(`${tablet.brand} ${tablet.model}`),
-    `${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)} mm`,
+    `${formatDecimal(area.width, 1)} × ${formatDecimal(area.height, 1)} mm`,
     calculateRatioString(area.width, area.height),
     area.rotation ? `${area.rotation}°` : '',
   ].filter(Boolean);

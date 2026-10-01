@@ -8,7 +8,7 @@
 
 import { icon } from './icons.js';
 import { t } from './i18n.js';
-import { clamp, clampCentre, getHalfExtents, formatNumber } from './utils.js';
+import { clamp, clampCentre, getHalfExtents, formatDecimal } from './utils.js';
 import {
   MAX_VISUALIZER_SCALE,
   VISUALIZER_PADDING,
@@ -130,10 +130,10 @@ function renderArea(zone) {
     'aria-label',
     t('area.label', {
       zone,
-      width: formatNumber(width, 1),
-      height: formatNumber(height, 1),
-      x: formatNumber(x, 1),
-      y: formatNumber(y, 1),
+      width: formatDecimal(width, 1),
+      height: formatDecimal(height, 1),
+      x: formatDecimal(x, 1),
+      y: formatDecimal(y, 1),
     })
   );
 }
