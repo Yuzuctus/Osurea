@@ -82,6 +82,8 @@ function renderTrigger() {
   name.textContent = selectedTablet.isCustom
     ? t('tablet.custom')
     : `${selectedTablet.brand} ${selectedTablet.model}`;
+  // The name is cut to one line: the full name stays in the tooltip
+  triggerBtn.title = name.textContent;
 }
 
 /**
@@ -150,12 +152,36 @@ function selectTablet(tablet) {
   onSelect?.(tablet);
 }
 
+/** Where the settings column scrolls on its own (see osurea.css, one screen) */
+const oneScreen = window.matchMedia('(min-width: 1280px) and (min-height: 560px)');
+
+/**
+ * In the one-screen layout the settings column can scroll and would clip the
+ * panel: it is then placed against the window, under the trigger.
+ */
+function placePanel() {
+  if (!oneScreen.matches) {
+    panel.classList.remove('is-fixed');
+    panel.style.removeProperty('top');
+    panel.style.removeProperty('right');
+    panel.style.removeProperty('max-height');
+    return;
+  }
+  const rect = triggerBtn.getBoundingClientRect();
+  const top = rect.bottom + 4;
+  panel.classList.add('is-fixed');
+  panel.style.top = `${top}px`;
+  panel.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+  panel.style.maxHeight = `${Math.max(240, window.innerHeight - top - 16)}px`;
+}
+
 function openPanel() {
   panel.hidden = false;
   triggerBtn.setAttribute('aria-expanded', 'true');
   renderList();
+  placePanel();
   // On a phone the panel opens under a sticky header: bring it into view.
-  panel.scrollIntoView({ block: 'nearest' });
+  if (!oneScreen.matches) panel.scrollIntoView({ block: 'nearest' });
   searchInput.focus();
 }
 
@@ -286,6 +312,15 @@ export async function initTabletSelector(container, onChange = null) {
   document.addEventListener('pointerdown', e => {
     if (!root.contains(e.target)) closePanel();
   });
+  // A panel placed against the window would drift from its trigger
+  window.addEventListener('resize', () => closePanel());
+  document.addEventListener(
+    'scroll',
+    e => {
+      if (panel.classList.contains('is-fixed') && !panel.contains(e.target)) closePanel();
+    },
+    true
+  );
 
   await loadTablets();
   renderList();

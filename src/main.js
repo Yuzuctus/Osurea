@@ -180,7 +180,10 @@ function loadState() {
  */
 function showNote(group, ...sentences) {
   const note = [...DOM.notes].find(el => el.dataset.note === group);
-  if (note) note.textContent = sentences.filter(Boolean).join(' ');
+  if (!note) return;
+  note.textContent = sentences.filter(Boolean).join(' ');
+  // The settings column may scroll: keep the explanation in view
+  if (note.textContent) note.scrollIntoView({ block: 'nearest' });
 }
 
 function clearNotes() {

@@ -33,13 +33,13 @@ export const DEFAULT_AREA = {
  * Allows small tablets to fill more of the available space
  * @constant {number}
  */
-export const MAX_VISUALIZER_SCALE = 6;
+export const MAX_VISUALIZER_SCALE = 12;
 
 /**
  * Visualizer padding in pixels
  * @constant {number}
  */
-export const VISUALIZER_PADDING = 32;
+export const VISUALIZER_PADDING = 16;
 
 /**
  * Grid step drawn on the tablet, in millimetres
