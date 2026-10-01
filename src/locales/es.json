@@ -92,9 +92,6 @@
   "notifications.error": "Algo salió mal",
   "footer.madeBy": "Hecho para jugadores de osu!",
   "footer.source": "Código fuente",
-  "group.size": "Tamaño",
-  "group.position": "Posición (centro)",
-  "group.shape": "Forma",
   "area.swap": "Invertir",
   "area.ratioCustom": "Otra",
   "area.ratioW": "Ancho de la proporción",
@@ -132,5 +129,7 @@
   "help.label": "Cómo funciona",
   "footer.tabletSettings": "Ajustes de tableta",
   "footer.spreadsheets": "Hojas de cálculo",
-  "footer.otherProjects": "Otros proyectos"
+  "footer.otherProjects": "Otros proyectos",
+  "group.sizePosition": "Tamaño y posición",
+  "group.aspect": "Aspecto"
 }

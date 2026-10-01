@@ -105,6 +105,7 @@ function cacheDOMElements() {
     customHeight: $('#custom-height'),
     customDimensions: $('#custom-dimensions'),
     readout: $('#readout'),
+    status: $('#status'),
     dragHint: $('#drag-hint'),
     themeBtn: $('#theme-toggle'),
     langButtons: document.querySelectorAll('[data-locale]'),
@@ -184,6 +185,23 @@ function showNote(group, ...sentences) {
   note.textContent = sentences.filter(Boolean).join(' ');
   // The settings column may scroll: keep the explanation in view
   if (note.textContent) note.scrollIntoView({ block: 'nearest' });
+}
+
+/**
+ * A short message in the preview's toolbar about what the preview now shows
+ * (a configuration was loaded). It fades after a few seconds.
+ * @param {string} message
+ */
+let statusTimer = 0;
+function showStatus(message) {
+  if (!DOM.status) return;
+  clearTimeout(statusTimer);
+  DOM.status.textContent = message;
+  DOM.status.title = message;
+  statusTimer = setTimeout(() => {
+    DOM.status.textContent = '';
+    DOM.status.removeAttribute('title');
+  }, 6000);
 }
 
 function clearNotes() {
@@ -602,7 +620,7 @@ function loadConfiguration(tablet, area, name) {
   clearNotes();
   recordBothZones();
   commit({ history: false, immediate: true });
-  showNote('size', t('note.loaded', { name, zone: state.activeZone }));
+  showStatus(t('note.loaded', { name, zone: state.activeZone }));
   revealStage();
 }
 
@@ -662,12 +680,12 @@ function applyCustomRatio() {
   const h = parseDecimal(DOM.ratioH?.value);
   clearNotes();
   if (!(w > 0) || !(h > 0)) {
-    showNote('size', t('note.ratioInvalid'));
+    showNote('shape', t('note.ratioInvalid'));
     return;
   }
   const shrunk = applyRatioPreset(state, w / h);
   commit({ immediate: true });
-  if (shrunk) noteShrunk('size');
+  if (shrunk) noteShrunk('shape');
 }
 
 function showRecap() {
@@ -699,6 +717,7 @@ function showRecap() {
 
 function onLocaleChanged() {
   clearNotes();
+  showStatus('');
   render();
   renderDragHint();
   renderFavorites();
@@ -765,7 +784,7 @@ function setupControls() {
     clearNotes();
     const shrunk = swapDimensions(state);
     commit({ immediate: true });
-    if (shrunk) noteShrunk('size');
+    if (shrunk) noteShrunk('shape');
   });
 
   DOM.gridBtn?.addEventListener('click', () => {
@@ -789,7 +808,7 @@ function setupControls() {
       DOM.ratioCustomToggle?.setAttribute('aria-expanded', 'false');
       const shrunk = applyRatioPreset(state, w / h);
       commit({ immediate: true });
-      if (shrunk) noteShrunk('size');
+      if (shrunk) noteShrunk('shape');
     });
   });
 
