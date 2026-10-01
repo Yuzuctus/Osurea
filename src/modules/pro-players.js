@@ -1,164 +1,62 @@
 /**
  * Osu!rea - Pro Players Module
- * Load and display pro player area configurations
+ * Load and display pro player area configurations (lazy, on first open)
  * @module pro-players
  */
 
-import { icon } from './icons.js';
 import { t } from './i18n.js';
-import { escapeHtml } from './utils.js';
+import { calculateRatioString, escapeHtml, formatNumber } from './utils.js';
 import { generatePreview } from './preview.js';
+import { announce, openDialog } from './modal.js';
 
-/** @type {Array} - Cached pro players data */
-let proPlayersData = [];
+/** @type {Array|null} - Cached pro players data, null until loaded */
+let proPlayersData = null;
 
 /** @type {Function|null} - Callback when a player config is selected */
 let onSelect = null;
 
-/** @type {boolean} - Whether data has been fetched */
-let dataLoaded = false;
-
-/** @type {HTMLElement|null} - Modal container */
-let modalContainer = null;
-
 /**
- * Render a single player card
- */
-function renderPlayerCard(player) {
-  const { name, tablet, area } = player;
-  return `
-    <div class="pro-player-card" data-name="${escapeHtml(name)}">
-      <div class="pro-player-preview-wrapper">
-        ${generatePreview(tablet, area, 'pro-player-preview')}
-      </div>
-      <div class="pro-player-info">
-        <h3 class="pro-player-name">${escapeHtml(name)}</h3>
-        <div class="pro-player-details">
-          <span class="pro-player-tablet">${escapeHtml(tablet.brand)} ${escapeHtml(tablet.model)}</span>
-          <span class="pro-player-area">${area.width.toFixed(1)} × ${area.height.toFixed(1)} mm</span>
-        </div>
-      </div>
-      <button class="pro-player-load" title="${t('proPlayers.load')}">
-        ${icon('play')}
-      </button>
-    </div>
-  `;
-}
-
-/**
- * Create and show the pro players modal
- */
-function showProPlayersModal() {
-  if (modalContainer) {
-    modalContainer.remove();
-  }
-
-  modalContainer = document.createElement('div');
-  modalContainer.className = 'modal-container';
-  modalContainer.id = 'pro-players-modal';
-
-  const playersHtml =
-    proPlayersData.length > 0
-      ? `<div class="pro-players-list">${proPlayersData.map(p => renderPlayerCard(p)).join('')}</div>`
-      : `<div class="pro-players-empty">
-        ${icon('users')}
-        <p data-i18n="proPlayers.empty">${t('proPlayers.empty')}</p>
-      </div>`;
-
-  modalContainer.innerHTML = `
-    <div class="modal-overlay" id="pro-players-overlay"></div>
-    <div class="modal pro-players-modal" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <h3 class="modal-title">
-          ${icon('users')}
-          <span data-i18n="proPlayers.title">${t('proPlayers.title')}</span>
-        </h3>
-        <button class="btn-icon modal-close" aria-label="Close">
-          ${icon('close')}
-        </button>
-      </div>
-      <div class="modal-body">
-        ${playersHtml}
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(modalContainer);
-
-  // Setup event listeners
-  const overlay = modalContainer.querySelector('#pro-players-overlay');
-  const closeBtn = modalContainer.querySelector('.modal-close');
-
-  overlay?.addEventListener('click', hideProPlayersModal);
-  closeBtn?.addEventListener('click', hideProPlayersModal);
-
-  // Player card clicks
-  modalContainer.querySelectorAll('.pro-player-card').forEach(card => {
-    const playerName = card.dataset.name;
-    const player = proPlayersData.find(p => p.name === playerName);
-
-    card.addEventListener('click', () => {
-      if (player && onSelect) {
-        onSelect(player);
-        hideProPlayersModal();
-      }
-    });
-
-    card.querySelector('.pro-player-load')?.addEventListener('click', e => {
-      e.stopPropagation();
-      if (player && onSelect) {
-        onSelect(player);
-        hideProPlayersModal();
-      }
-    });
-  });
-
-  // Close on escape
-  const handleEscape = e => {
-    if (e.key === 'Escape') {
-      hideProPlayersModal();
-      document.removeEventListener('keydown', handleEscape);
-    }
-  };
-  document.addEventListener('keydown', handleEscape);
-
-  // Animate in
-  requestAnimationFrame(() => {
-    modalContainer.classList.add('visible');
-  });
-}
-
-/**
- * Hide the pro players modal
- */
-function hideProPlayersModal() {
-  if (modalContainer) {
-    modalContainer.classList.remove('visible');
-    setTimeout(() => {
-      modalContainer?.remove();
-      modalContainer = null;
-    }, 200);
-  }
-}
-
-/**
- * Fetch pro players data from JSON
+ * Fetch pro players data from JSON. A failed load is retried next time.
+ * @returns {Promise<Array|null>} - null on failure
  */
 async function fetchProPlayers() {
   try {
-    const response = await fetch('/pro-players.json');
-    if (!response.ok) {
-      throw new Error('Failed to load pro players data');
-    }
+    const response = await fetch(`${import.meta.env.BASE_URL}pro-players.json`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    proPlayersData = data.players || [];
+    proPlayersData = Array.isArray(data.players) ? data.players : [];
     return proPlayersData;
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn('Failed to load pro players:', error);
-    proPlayersData = [];
-    return [];
+    return null;
   }
+}
+
+/**
+ * Render a single player row
+ */
+function renderPlayerRow(player, index) {
+  const name = player.name.trim();
+  const { tablet, area } = player;
+  const meta = [
+    escapeHtml(`${tablet.brand} ${tablet.model}`),
+    `${formatNumber(area.width, 1)} × ${formatNumber(area.height, 1)} mm`,
+    calculateRatioString(area.width, area.height),
+    area.rotation ? `${area.rotation}°` : '',
+  ].filter(Boolean);
+
+  return `
+    <li class="ag-record">
+      <span class="ag-record__rank">${String(index + 1).padStart(2, '0')}</span>
+      <div class="ag-record__copy">
+        <h3 class="ag-record__title">${escapeHtml(name)}</h3>
+        <p class="ag-record__meta">${meta.join(' · ')}</p>
+      </div>
+      <button class="ag-record__primary" type="submit" value="${index}"
+        aria-label="${escapeHtml(t('proPlayers.load', { name }))}"></button>
+      <div class="ag-record__media">${generatePreview(tablet, area)}</div>
+    </li>
+  `;
 }
 
 /**
@@ -170,19 +68,32 @@ export function initProPlayers(onSelectPlayer = null) {
 }
 
 /**
- * Open the pro players selection modal (lazy-loads data on first open)
+ * Open the pro players dialog (lazy-loads data on first open)
  */
 export async function openProPlayersModal() {
-  if (!dataLoaded) {
-    await fetchProPlayers();
-    dataLoaded = true;
-  }
-  showProPlayersModal();
-}
+  const players = proPlayersData ?? (await fetchProPlayers());
 
-/**
- * Get all pro players data
- */
-export function getProPlayers() {
-  return [...proPlayersData];
+  let body;
+  if (players === null) {
+    body = `<div class="ag-state ag-state--error" role="alert">
+      <p class="ag-state__title">${t('proPlayers.loadError')}</p></div>`;
+  } else if (players.length === 0) {
+    body = `<div class="ag-state"><p class="ag-state__body">${t('proPlayers.empty')}</p></div>`;
+  } else {
+    body = `<ol class="ag-records os-records">${players.map(renderPlayerRow).join('')}</ol>`;
+  }
+
+  const { value } = await openDialog({
+    title: t('proPlayers.title'),
+    kicker: t('proPlayers.kicker'),
+    body,
+    wide: true,
+    actions: [{ label: t('modal.close'), value: '', variant: 'ag-button--quiet' }],
+  });
+
+  const player = value !== '' ? players?.[Number(value)] : null;
+  if (player) {
+    onSelect?.(player);
+    announce(t('notifications.loaded'));
+  }
 }

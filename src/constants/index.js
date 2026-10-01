@@ -4,35 +4,6 @@
  */
 
 /**
- * Standard aspect ratio 16:9 (commonly used in osu!)
- * @constant {number}
- */
-export const ASPECT_RATIO_16_9 = 16 / 9;
-
-/**
- * Standard aspect ratio 4:3
- * @constant {number}
- */
-export const ASPECT_RATIO_4_3 = 4 / 3;
-
-/**
- * Standard aspect ratio 16:10
- * @constant {number}
- */
-export const ASPECT_RATIO_16_10 = 16 / 10;
-
-/**
- * Available preset ratios
- * @constant {Object[]}
- */
-export const PRESET_RATIOS = [
-  { name: '16:9', value: 16 / 9 },
-  { name: '16:10', value: 16 / 10 },
-  { name: '4:3', value: 4 / 3 },
-  { name: '1:1', value: 1 },
-];
-
-/**
  * Default tablet configuration (Wacom CTL-472)
  * @constant {Object}
  */
@@ -68,7 +39,19 @@ export const MAX_VISUALIZER_SCALE = 6;
  * Visualizer padding in pixels
  * @constant {number}
  */
-export const VISUALIZER_PADDING = 40;
+export const VISUALIZER_PADDING = 32;
+
+/**
+ * Grid step drawn on the tablet, in millimetres
+ * @constant {number}
+ */
+export const GRID_STEP_MM = 10;
+
+/**
+ * Keyboard nudge of the area, in millimetres (Shift multiplies by 10)
+ * @constant {number}
+ */
+export const KEYBOARD_STEP_MM = 1;
 
 /**
  * Debounce delay for input updates (ms)
@@ -102,6 +85,7 @@ export const STORAGE_KEYS = {
   PREFS: 'osurea:prefs',
   FAVORITES: 'osurea:favorites',
   LOCALE: 'osurea:locale',
+  THEME: 'osurea:theme',
 };
 
 /**

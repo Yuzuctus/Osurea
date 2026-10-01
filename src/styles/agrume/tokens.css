@@ -1,0 +1,115 @@
+/*
+ * Agrume v3 · tokens. Copy verbatim; change here first (see DESIGN.md).
+ *
+ * One design for every site. Light and dark are written once with
+ * light-dark(): a colour token resolves where it is used, against that
+ * element's color-scheme. So the page follows [data-theme] or the system, and
+ * a section that sets its own color-scheme (.ag-night, .ag-footer,
+ * .ag-closing) gets the whole palette of that scheme for free.
+ *
+ * Palette "Yuzu": the Sapin/mint base of the family, with the yuzu yellow of
+ * the handle (Yuzuctus = yuzu + cactus) and of the OC's hair clip as the
+ * filled state and the highlight.
+ *
+ * Contrast (WCAG, minimum on paper / surface / sunken / raised, light · dark):
+ *   ink ≥ 13.5 · 11.5   muted ≥ 6.0 · 7.2   faint ≥ 4.5 everywhere
+ *   rule-strong ≥ 3.0 · 3.1   focus ≥ 4.6 · 7.8   identity ≥ 5.0 · 9.2
+ *   `rule` is a decorative hairline (never the only boundary of a control).
+ */
+
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root {
+  /* ------------------------------------------------------------ pigments */
+  /* The family's colours. Fills only, always with --ag-on-pigment text. */
+  --ag-pigment-mint: light-dark(#a6e9d1, #72d3a8);
+  --ag-pigment-cyan: light-dark(#9bd8ec, #87cfe6);
+  --ag-pigment-yellow: #f2e285;
+  --ag-pigment-pink: #f6b6c6;
+  --ag-on-pigment: #141c17;
+
+  /* --------------------------------------------------------------- roles */
+  --ag-paper: light-dark(#f3f6ea, #131c17); /* the ground: "Sapin" */
+  --ag-surface: light-dark(#eaeedd, #1a251e); /* bands, hovered rows */
+  --ag-surface-sunken: light-dark(#e0e5d2, #222d27); /* tracks, wells, empty cells */
+  --ag-surface-raised: light-dark(#fbfcf5, #25312a); /* popovers, panels */
+  --ag-ink: light-dark(#141c17, #eeede4); /* text and major rules */
+  --ag-muted: light-dark(#4b554f, #b9c0b8); /* secondary text */
+  --ag-faint: light-dark(#5f6761, #99a199); /* meta, axes, timestamps */
+  --ag-rule: light-dark(#d2d8c6, #2d3932); /* hairline between comparable rows */
+  --ag-rule-strong: light-dark(#7c8274, #707d74); /* control borders, group separators */
+  --ag-identity: light-dark(#0e6b4c, #86e3b4); /* the family green: names, current place */
+  --ag-accent: light-dark(#f2e285, #f2de6e); /* yuzu: filled state, action sweep */
+  --ag-accent-ink: light-dark(#1d1a05, #171403);
+  --ag-marker: light-dark(#ffe696, #584e0f); /* highlight behind letters */
+  --ag-gold: light-dark(#6b5a00, #ffe696); /* yellow as text (titles) */
+  --ag-rose: light-dark(#9e2452, #f28bab); /* rose as text (titles) */
+  --ag-focus: light-dark(#156b85, #87cfe6);
+  --ag-danger: light-dark(#a52638, #ff9aa9);
+  --ag-on-inverse: var(--ag-paper); /* text on an ink ground */
+  --ag-night: light-dark(#eaeedd, #131c17); /* read inside .ag-night (inverted scheme) */
+  --ag-deep: #0c140f; /* footer ground, both themes */
+  --ag-shadow-overlay: 0 1px 0 light-dark(rgb(20 28 23 / 0.05), rgb(238 237 228 / 0.06)),
+    0 14px 36px -10px light-dark(rgb(20 28 23 / 0.3), rgb(0 0 0 / 0.7));
+
+  /* Paper grain: one noise tile used as a mask; the colour carries opacity. */
+  --ag-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.4 1.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --ag-grain-color: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.03));
+
+  /* ---------------------------------------------------------------- type */
+  --ag-font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --ag-font-title: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
+  --ag-font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --ag-text-2xs: 0.6875rem; /* 11: mono labels */
+  --ag-text-xs: 0.75rem; /* 12: meta */
+  --ag-text-sm: 0.8125rem; /* 13: dense UI */
+  --ag-text-md: 0.9375rem; /* 15: interface body */
+  --ag-text-base: 1rem; /* 16: reading body */
+  --ag-text-lg: 1.125rem; /* 18: leads */
+  --ag-text-xl: 1.375rem; /* 22 */
+  --ag-text-2xl: 1.75rem; /* 28: section titles */
+  --ag-text-3xl: 2.25rem; /* 36 */
+  --ag-title-lg: clamp(1.75rem, 3vw, 2.5rem); /* list titles, bands */
+  --ag-title-xl: clamp(2.75rem, 6vw, 5.5rem); /* chapter, feature, night */
+  --ag-title-hero: clamp(4rem, 9.5vw, 9rem); /* one per page */
+
+  /* ------------------------------------------------------------- spacing */
+  --ag-space-1: 4px;
+  --ag-space-2: 8px;
+  --ag-space-3: 12px;
+  --ag-space-4: 16px;
+  --ag-space-5: 20px;
+  --ag-space-6: 24px;
+  --ag-space-7: 32px;
+  --ag-space-8: 40px;
+  --ag-space-9: 48px;
+  --ag-space-10: 64px;
+  --ag-space-11: 96px;
+
+  /* ------------------------------------------------------- shape, motion */
+  --ag-border-hair: 1px; /* between items */
+  --ag-border-rule: 2px; /* opens a list or a section */
+  --ag-border-mark: 3px; /* current item */
+  --ag-radius-art: 2px; /* artwork only */
+  --ag-radius-round: 999px; /* dots only */
+  --ag-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ag-dur-fast: 120ms;
+  --ag-dur: 180ms;
+  --ag-dur-slow: 280ms;
+
+  /* -------------------------------------------------------------- layout */
+  /* Breakpoints (media queries cannot read variables): 620 · 760 · 960. */
+  --ag-container: 72.5rem; /* 1160 px column */
+  --ag-edge: clamp(1rem, 4vw, 2.5rem);
+  --ag-control-h: 36px;
+  --ag-target: 44px; /* minimum touch target */
+}

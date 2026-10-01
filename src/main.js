@@ -1,158 +1,135 @@
 /**
  * Osu!rea - Main Entry Point
  * Tablet area visualizer for osu!
- * 
- * This file orchestrates app initialization and wires together all modules.
- * Business logic is delegated to controllers.
+ *
+ * Owns the application state and renders it. Area maths live in
+ * controllers/areaController.js; each UI piece lives in its module.
  */
 
-import './styles/variables.css';
-import './styles/base.css';
-import './styles/components.css';
-import './styles/layout.css';
+// Agrume kit (copied verbatim, see src/styles/agrume/), then the site's own styles
+import './styles/agrume/fonts.css';
+import './styles/agrume/tokens.css';
+import './styles/agrume/base.css';
+import './styles/agrume/components.css';
+import './styles/agrume/app.css';
+import './styles/osurea.css';
 
-// Modules
-import { initI18n, translatePage } from './modules/i18n.js';
-import { loadPrefs, savePrefs } from './modules/storage.js';
+import { initI18n, t } from './modules/i18n.js';
+import { icon } from './modules/icons.js';
+import { loadPrefs, savePrefs, normalizeArea, normalizeTablet } from './modules/storage.js';
 import {
   initVisualizer,
   setTablet,
   setArea,
   setAreaB,
-  setAreaRadius,
-  setAreaRotation,
   setGridVisible,
   setComparisonMode,
   setActiveZone,
+  openAlignMenu,
+  closeAlignMenu,
+  isAlignMenuOpen,
+  refreshVisualizerLabels,
 } from './modules/visualizer.js';
-import { initTabletSelector, setCurrentTablet } from './modules/tablet-selector.js';
-import { initFavorites, saveCurrentAsFavorite } from './modules/favorites.js';
-import { initProPlayers } from './modules/pro-players.js';
-import { debounce, getActiveArea, syncActiveArea, formatNumber, calculateRatioString } from './modules/utils.js';
+import {
+  initTabletSelector,
+  setCurrentTablet,
+  refreshTabletSelector,
+} from './modules/tablet-selector.js';
+import { initFavorites, renderFavorites, saveCurrentAsFavorite } from './modules/favorites.js';
+import { initProPlayers, openProPlayersModal } from './modules/pro-players.js';
 import { showRecapModal } from './modules/modal.js';
+import { createHistory, initKeyboardShortcuts } from './modules/history.js';
 import {
-  pushState as historyPushState,
-  undo as historyUndo,
-  redo as historyRedo,
-  initKeyboardShortcuts,
-} from './modules/history.js';
-
-// Controllers
+  debounce,
+  getActiveArea,
+  formatNumber,
+  formatInputNumber,
+  calculateRatioString,
+  clamp,
+} from './modules/utils.js';
 import {
-  initTheme,
-  setupThemeToggle,
-  setupLanguageDropdown,
-  updateLangDisplay,
   clampAreaPosition,
   centerArea,
+  fitAreaToTablet,
   setFullArea,
   updateAreaDimensions,
   updateAreaPosition,
   updateRadius,
   updateRotation,
   applyRatioPreset,
-  setupAreaDimensionInputs,
-  setupPositionInputs,
-  setupRadiusControls,
-  setupRotationControls,
-  setupLockRatioToggle,
-  setupGridToggle,
-  setupToolbarButtons,
-  setupZoneSelector,
-  setupCustomDimensions,
-  setupRatioPresets,
-  setupAreaChangeListener,
-} from './controllers/index.js';
-
-import { SAVE_DEBOUNCE_DELAY } from './constants/index.js';
+} from './controllers/areaController.js';
+import { setupThemeToggle, updateThemeToggle } from './controllers/themeController.js';
+import { setupLanguageToggles } from './controllers/languageController.js';
+import { DEFAULT_TABLET, INPUT_DEBOUNCE_DELAY, SAVE_DEBOUNCE_DELAY } from './constants/index.js';
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-/**
- * Application state
- * @type {import('./modules/utils.js').AppState}
- */
+/** @type {import('./modules/utils.js').AppState} */
 const state = {
-  tablet: null,
-  area: { x: 0, y: 0, width: 100, height: 62.5, radius: 0, rotation: 0 },
-  areaB: { x: 76, y: 47.5, width: 100, height: 62.5, radius: 0, rotation: 0 },
+  tablet: { ...DEFAULT_TABLET },
+  area: normalizeArea({ x: 76, y: 47.5, width: 100, height: 62.5 }),
+  areaB: normalizeArea({ x: 76, y: 47.5, width: 100, height: 62.5 }),
   comparisonMode: false,
   activeZone: 'A',
   lockRatio: true,
-  lockedRatio: 16 / 9,
-  lockedRatioB: 16 / 9,
   showGrid: true,
 };
+
+/** One undo history per zone */
+const histories = { A: createHistory(), B: createHistory() };
+
+/** Custom tablet bounds, in mm */
+const CUSTOM_TABLET_MIN = 10;
+const CUSTOM_TABLET_MAX = 1000;
 
 // ============================================================================
 // DOM CACHE
 // ============================================================================
 
-/**
- * Cached DOM element references
- * @type {Object.<string, HTMLElement|null>}
- */
+const $ = selector => document.querySelector(selector);
 const DOM = {};
 
-/**
- * Cache all DOM elements
- */
 function cacheDOMElements() {
-  // Inputs
-  DOM.widthInput = document.querySelector('#area-width');
-  DOM.heightInput = document.querySelector('#area-height');
-  DOM.posXInput = document.querySelector('#area-pos-x');
-  DOM.posYInput = document.querySelector('#area-pos-y');
-  DOM.radiusSlider = document.querySelector('#area-radius');
-  DOM.radiusInput = document.querySelector('#radius-value');
-  DOM.rotationSlider = document.querySelector('#area-rotation');
-  DOM.rotationInput = document.querySelector('#rotation-value');
-  DOM.customWidth = document.querySelector('#custom-width');
-  DOM.customHeight = document.querySelector('#custom-height');
-  // Displays
-  DOM.ratioValue = document.querySelector('#ratio-value');
-  DOM.ratioDisplay = document.querySelector('#ratio-display');
-  DOM.areaDisplay = document.querySelector('#area-display');
-  DOM.tabletDimensions = document.querySelector('#tablet-dimensions');
-  // Buttons
-  DOM.themeBtn = document.querySelector('#theme-toggle');
-  DOM.lockRatioBtn = document.querySelector('#lock-ratio');
-  DOM.gridBtn = document.querySelector('#toggle-grid');
-  DOM.gridIcon = document.querySelector('#grid-icon');
-  DOM.fullAreaBtn = document.querySelector('#full-area');
-  DOM.fullAreaIcon = document.querySelector('#fullarea-icon');
-  DOM.recapBtn = document.querySelector('#show-recap');
-  DOM.recapIcon = document.querySelector('#recap-icon');
-  DOM.saveBtn = document.querySelector('#save-favorite');
-  DOM.saveIcon = document.querySelector('#save-icon');
-  DOM.proPlayersBtn = document.querySelector('#pro-players-btn');
-  DOM.proPlayersIcon = document.querySelector('#pro-players-icon');
-  DOM.comparisonToggle = document.querySelector('#toggle-comparison');
-  DOM.comparisonIcon = document.querySelector('#comparison-icon');
-  DOM.zoneABtn = document.querySelector('#zone-a-btn');
-  DOM.zoneBBtn = document.querySelector('#zone-b-btn');
-  // Containers
-  DOM.visualizer = document.querySelector('#visualizer');
-  DOM.tabletSelector = document.querySelector('#tablet-selector');
-  DOM.favorites = document.querySelector('#favorites');
-  DOM.customDimensions = document.querySelector('#custom-dimensions');
-  DOM.zoneSelector = document.querySelector('#zone-selector');
-  // Language
-  DOM.langToggle = document.querySelector('#lang-toggle');
-  DOM.langMenu = document.querySelector('#lang-menu');
-  DOM.langDropdown = document.querySelector('#lang-dropdown');
-  DOM.currentLang = document.querySelector('#current-lang');
+  Object.assign(DOM, {
+    widthInput: $('#area-width'),
+    heightInput: $('#area-height'),
+    posXInput: $('#area-pos-x'),
+    posYInput: $('#area-pos-y'),
+    radiusSlider: $('#area-radius'),
+    radiusInput: $('#radius-value'),
+    rotationSlider: $('#area-rotation'),
+    rotationInput: $('#rotation-value'),
+    customWidth: $('#custom-width'),
+    customHeight: $('#custom-height'),
+    customDimensions: $('#custom-dimensions'),
+    ratioDisplay: $('#ratio-display'),
+    areaDisplay: $('#area-display'),
+    tabletDimensions: $('#tablet-dimensions'),
+    themeBtn: $('#theme-toggle'),
+    langButtons: document.querySelectorAll('[data-locale]'),
+    lockRatioBtn: $('#lock-ratio'),
+    gridBtn: $('#toggle-grid'),
+    fullAreaBtn: $('#full-area'),
+    alignBtn: $('#align-area'),
+    recapBtn: $('#show-recap'),
+    saveBtn: $('#save-favorite'),
+    proPlayersBtn: $('#pro-players-btn'),
+    comparisonToggle: $('#toggle-comparison'),
+    zoneSelector: $('#zone-selector'),
+    zoneButtons: document.querySelectorAll('#zone-selector [data-zone]'),
+    ratioButtons: document.querySelectorAll('[data-ratio]'),
+    visualizer: $('#visualizer'),
+    tabletSelector: $('#tablet-selector'),
+    favorites: $('#favorites'),
+  });
 }
 
 // ============================================================================
 // PERSISTENCE
 // ============================================================================
 
-/**
- * Save state to localStorage
- */
 function saveState() {
   savePrefs({
     tablet: state.tablet,
@@ -161,225 +138,290 @@ function saveState() {
     comparisonMode: state.comparisonMode,
     activeZone: state.activeZone,
     lockRatio: state.lockRatio,
-    lockedRatio: state.lockedRatio,
-    lockedRatioB: state.lockedRatioB,
     showGrid: state.showGrid,
   });
 }
 
 const debouncedSaveState = debounce(saveState, SAVE_DEBOUNCE_DELAY);
 
-/**
- * Load state from localStorage
- */
 function loadState() {
   const prefs = loadPrefs();
-  if (!prefs) return;
-
-  if (prefs.tablet) state.tablet = prefs.tablet;
-  if (prefs.area) Object.assign(state.area, prefs.area);
-  if (prefs.areaB) Object.assign(state.areaB, prefs.areaB);
+  if (prefs.tablet) state.tablet = normalizeTablet(prefs.tablet);
+  if (prefs.area) state.area = normalizeArea(prefs.area);
+  if (prefs.areaB) state.areaB = normalizeArea(prefs.areaB);
   if (typeof prefs.comparisonMode === 'boolean') state.comparisonMode = prefs.comparisonMode;
-  if (prefs.activeZone) state.activeZone = prefs.activeZone;
+  if (prefs.activeZone === 'A' || prefs.activeZone === 'B') state.activeZone = prefs.activeZone;
   if (typeof prefs.lockRatio === 'boolean') state.lockRatio = prefs.lockRatio;
-  if (typeof prefs.lockedRatio === 'number') state.lockedRatio = prefs.lockedRatio;
-  if (typeof prefs.lockedRatioB === 'number') state.lockedRatioB = prefs.lockedRatioB;
   if (typeof prefs.showGrid === 'boolean') state.showGrid = prefs.showGrid;
+  // Zone B is only edited in comparison mode
+  if (!state.comparisonMode) state.activeZone = 'A';
+
+  fitAreaToTablet(state, 'A');
+  fitAreaToTablet(state, 'B');
 }
 
 // ============================================================================
-// HISTORY (UNDO/REDO)
+// RENDERING
 // ============================================================================
 
-function pushAreaToHistory() {
-  historyPushState(getActiveArea(state));
+/**
+ * Write a value into a field, unless the user is typing in it
+ * @param {HTMLInputElement|null} input
+ * @param {string|number} value
+ * @param {HTMLElement|null} skip
+ */
+function setField(input, value, skip) {
+  if (input && input !== skip) input.value = String(value);
 }
 
-const debouncedPushHistory = debounce(pushAreaToHistory, 500);
-
-function handleUndo() {
-  const activeArea = getActiveArea(state);
-  const previousState = historyUndo(activeArea);
-  if (previousState) {
-    Object.assign(activeArea, previousState);
-    syncActiveArea(state, setArea, setAreaB);
-    setAreaRadius(activeArea.radius || 0);
-    setAreaRotation(activeArea.rotation || 0);
-    updateInputs();
-    updateRatioDisplay();
-    saveState();
-  }
+/**
+ * @param {HTMLElement|null} [skip] - Field being edited, left untouched
+ */
+function renderInputs(skip = null) {
+  const area = getActiveArea(state);
+  setField(DOM.widthInput, formatInputNumber(area.width), skip);
+  setField(DOM.heightInput, formatInputNumber(area.height), skip);
+  setField(DOM.posXInput, formatInputNumber(area.x), skip);
+  setField(DOM.posYInput, formatInputNumber(area.y), skip);
+  setField(DOM.radiusSlider, area.radius, skip);
+  setField(DOM.radiusInput, area.radius, skip);
+  setField(DOM.rotationSlider, area.rotation, skip);
+  setField(DOM.rotationInput, area.rotation, skip);
+  setField(DOM.customWidth, formatInputNumber(state.tablet.width), skip);
+  setField(DOM.customHeight, formatInputNumber(state.tablet.height), skip);
 }
 
-function handleRedo() {
-  const activeArea = getActiveArea(state);
-  const nextState = historyRedo(activeArea);
-  if (nextState) {
-    Object.assign(activeArea, nextState);
-    syncActiveArea(state, setArea, setAreaB);
-    setAreaRadius(activeArea.radius || 0);
-    setAreaRotation(activeArea.rotation || 0);
-    updateInputs();
-    updateRatioDisplay();
-    saveState();
-  }
-}
-
-// ============================================================================
-// UI UPDATES
-// ============================================================================
-
-function updateInputs() {
-  const activeArea = getActiveArea(state);
-  if (DOM.widthInput) DOM.widthInput.value = formatNumber(activeArea.width, 1);
-  if (DOM.heightInput) DOM.heightInput.value = formatNumber(activeArea.height, 1);
-  updatePositionInputs();
-  updateSliders();
-  updateRatioDisplay();
-}
-
-function updatePositionInputs() {
-  const activeArea = getActiveArea(state);
-  if (DOM.posXInput) DOM.posXInput.value = formatNumber(activeArea.x, 1);
-  if (DOM.posYInput) DOM.posYInput.value = formatNumber(activeArea.y, 1);
-}
-
-function updateSliders() {
-  const activeArea = getActiveArea(state);
-  const radius = activeArea.radius || 0;
-  const rotation = activeArea.rotation || 0;
-  if (DOM.radiusSlider) {
-    DOM.radiusSlider.value = radius;
-    DOM.radiusSlider.setAttribute('aria-valuenow', radius);
-  }
-  if (DOM.radiusInput) DOM.radiusInput.value = radius;
-  if (DOM.rotationSlider) {
-    DOM.rotationSlider.value = rotation;
-    DOM.rotationSlider.setAttribute('aria-valuenow', rotation);
-  }
-  if (DOM.rotationInput) DOM.rotationInput.value = rotation;
-}
-
-function updateRatioDisplay() {
-  const activeArea = getActiveArea(state);
-  const ratio = calculateRatioString(activeArea.width, activeArea.height);
-  if (DOM.ratioValue) DOM.ratioValue.textContent = ratio;
+function renderReadout() {
+  const area = getActiveArea(state);
+  const ratio = calculateRatioString(area.width, area.height);
+  // Readout: one decimal at most (76 × 47.5); the fields keep the exact values
+  const short = value => String(Number(value.toFixed(1)));
+  if (DOM.areaDisplay) DOM.areaDisplay.textContent = `${short(area.width)} × ${short(area.height)}`;
   if (DOM.ratioDisplay) DOM.ratioDisplay.textContent = ratio;
-  if (DOM.areaDisplay) {
-    DOM.areaDisplay.textContent = `${formatNumber(activeArea.width, 1)} × ${formatNumber(activeArea.height, 1)}`;
+  if (DOM.tabletDimensions) {
+    DOM.tabletDimensions.textContent = `${short(state.tablet.width)} × ${short(state.tablet.height)}`;
   }
+  DOM.ratioButtons.forEach(btn =>
+    btn.setAttribute('aria-pressed', String(btn.dataset.ratio === ratio))
+  );
 }
 
-function updateTabletInfo() {
-  if (DOM.tabletDimensions && state.tablet) {
-    DOM.tabletDimensions.textContent = `${formatNumber(state.tablet.width, 1)} × ${formatNumber(state.tablet.height, 1)} mm`;
+function renderControls() {
+  DOM.comparisonToggle?.setAttribute('aria-pressed', String(state.comparisonMode));
+  if (DOM.zoneSelector) DOM.zoneSelector.hidden = !state.comparisonMode;
+  DOM.zoneButtons.forEach(btn => {
+    const { zone } = btn.dataset;
+    btn.setAttribute('aria-pressed', String(zone === state.activeZone));
+    btn.querySelector('[data-zone-label]').textContent = t('comparison.zone', { zone });
+  });
+
+  if (DOM.lockRatioBtn) {
+    DOM.lockRatioBtn.setAttribute('aria-pressed', String(state.lockRatio));
+    DOM.lockRatioBtn.innerHTML = icon(state.lockRatio ? 'lock' : 'unlock');
   }
+  DOM.gridBtn?.setAttribute('aria-pressed', String(state.showGrid));
+  if (DOM.customDimensions) DOM.customDimensions.hidden = !state.tablet.isCustom;
+}
+
+function syncVisualizer() {
+  setTablet(state.tablet.width, state.tablet.height);
+  setArea(state.area);
+  setAreaB(state.areaB);
+  setComparisonMode(state.comparisonMode);
+  setActiveZone(state.activeZone);
+  setGridVisible(state.showGrid);
+}
+
+/**
+ * Render the whole state
+ * @param {HTMLElement|null} [skip] - Field being edited
+ */
+function render(skip = null) {
+  syncVisualizer();
+  renderInputs(skip);
+  renderReadout();
+  renderControls();
+}
+
+/**
+ * Render after a change, record it and save it
+ * @param {Object} [options]
+ * @param {boolean} [options.history=true] - Record the active area for undo
+ * @param {HTMLElement|null} [options.skip=null] - Field being edited
+ * @param {boolean} [options.immediate=false] - Save now rather than debounced
+ */
+function commit({ history = true, skip = null, immediate = false } = {}) {
+  render(skip);
+  if (history) histories[state.activeZone].push(getActiveArea(state));
+  if (immediate) saveState();
+  else debouncedSaveState();
+}
+
+/** Record both zones (after a change of tablet or configuration) */
+function recordBothZones() {
+  histories.A.push(state.area);
+  histories.B.push(state.areaB);
 }
 
 // ============================================================================
 // EVENT HANDLERS
 // ============================================================================
 
-function onTabletSelected(tablet) {
-  state.tablet = tablet;
-  setTablet(tablet.width, tablet.height);
-  updateTabletInfo();
+/**
+ * @param {HTMLInputElement|null} input
+ * @returns {number|null}
+ */
+function readNumber(input) {
+  const value = parseFloat(input?.value ?? '');
+  return Number.isFinite(value) ? value : null;
+}
 
-  if (tablet.isCustom) {
-    if (DOM.customWidth) DOM.customWidth.value = tablet.width;
-    if (DOM.customHeight) DOM.customHeight.value = tablet.height;
-    DOM.customDimensions?.classList.remove('hidden');
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-  } else {
-    DOM.customDimensions?.classList.add('hidden');
+/**
+ * Width / height edited
+ * @param {'width'|'height'} changed
+ * @param {boolean} isCommit - change event (blur, Enter) rather than typing
+ */
+function onDimensionEdit(changed, isCommit) {
+  const area = getActiveArea(state);
+  const input = changed === 'width' ? DOM.widthInput : DOM.heightInput;
+  const value = readNumber(input);
+  if (value === null || value <= 0) {
+    if (isCommit) render(); // restore the last valid value
+    return;
   }
-
-  if (state.area.width > tablet.width) state.area.width = tablet.width;
-  if (state.area.height > tablet.height) state.area.height = tablet.height;
-  state.area.x = tablet.width / 2;
-  state.area.y = tablet.height / 2;
-  clampAreaPosition(state);
-  setArea(state.area);
-
-  // Also clamp Zone B when tablet changes
-  if (state.areaB.width > tablet.width) state.areaB.width = tablet.width;
-  if (state.areaB.height > tablet.height) state.areaB.height = tablet.height;
-  clampAreaPosition(state, 'B');
-  setAreaB(state.areaB);
-
-  updateInputs();
-  saveState();
+  const width = changed === 'width' ? value : area.width;
+  const height = changed === 'height' ? value : area.height;
+  updateAreaDimensions(state, width, height, changed);
+  commit({ history: isCommit, skip: isCommit ? null : input });
 }
 
-function onFavoriteSelected(favorite) {
-  state.tablet = favorite.tablet;
-  Object.assign(getActiveArea(state), favorite.area);
-  setCurrentTablet(state.tablet);
-  setTablet(state.tablet.width, state.tablet.height);
-  syncActiveArea(state, setArea, setAreaB);
-  setAreaRadius(getActiveArea(state).radius || 0);
-  setAreaRotation(getActiveArea(state).rotation || 0);
-  updateTabletInfo();
-  updateInputs();
-  pushAreaToHistory();
-  saveState();
+/**
+ * Centre X / Y edited
+ * @param {HTMLInputElement} input
+ * @param {boolean} isCommit
+ */
+function onPositionEdit(input, isCommit) {
+  const area = getActiveArea(state);
+  const value = readNumber(input);
+  if (value === null) {
+    if (isCommit) render();
+    return;
+  }
+  const x = input === DOM.posXInput ? value : area.x;
+  const y = input === DOM.posYInput ? value : area.y;
+  updateAreaPosition(state, x, y);
+  commit({ history: isCommit, skip: isCommit ? null : input });
 }
 
-function onProPlayerSelected(player) {
+function onCustomDimensionsEdit() {
+  if (!state.tablet.isCustom) return;
+  const width = readNumber(DOM.customWidth) ?? state.tablet.width;
+  const height = readNumber(DOM.customHeight) ?? state.tablet.height;
   state.tablet = {
-    brand: player.tablet.brand,
-    model: player.tablet.model,
-    width: player.tablet.width,
-    height: player.tablet.height,
-    isCustom: false,
+    ...state.tablet,
+    width: clamp(width, CUSTOM_TABLET_MIN, CUSTOM_TABLET_MAX),
+    height: clamp(height, CUSTOM_TABLET_MIN, CUSTOM_TABLET_MAX),
   };
-  Object.assign(getActiveArea(state), player.area);
+  fitAreaToTablet(state, 'A');
+  fitAreaToTablet(state, 'B');
   setCurrentTablet(state.tablet);
-  setTablet(state.tablet.width, state.tablet.height);
-  syncActiveArea(state, setArea, setAreaB);
-  setAreaRadius(getActiveArea(state).radius || 0);
-  setAreaRotation(getActiveArea(state).rotation || 0);
-  updateTabletInfo();
-  updateInputs();
-  pushAreaToHistory();
-  saveState();
+  recordBothZones();
+  commit({ history: false, immediate: true });
+}
+
+function onVisualizerChange(area, zone, isCommit) {
+  Object.assign(zone === 'A' ? state.area : state.areaB, area);
+  if (isCommit) commit();
+  else render();
+}
+
+function onTabletSelected(tablet) {
+  const next = normalizeTablet(tablet);
+  const resized = next.width !== state.tablet.width || next.height !== state.tablet.height;
+  state.tablet = next;
+  for (const zone of ['A', 'B']) {
+    fitAreaToTablet(state, zone);
+    if (resized) centerArea(state, zone);
+  }
+  recordBothZones();
+  commit({ history: false, immediate: true });
+}
+
+/**
+ * Load a saved or shared configuration into the active zone
+ * @param {Object} tablet
+ * @param {Object} area
+ */
+function loadConfiguration(tablet, area) {
+  state.tablet = normalizeTablet(tablet);
+  Object.assign(getActiveArea(state), normalizeArea(area));
+  fitAreaToTablet(state, 'A');
+  fitAreaToTablet(state, 'B');
+  setCurrentTablet(state.tablet);
+  recordBothZones();
+  commit({ history: false, immediate: true });
 }
 
 function toggleComparisonMode() {
   state.comparisonMode = !state.comparisonMode;
-  setComparisonMode(state.comparisonMode);
-  DOM.comparisonToggle?.classList.toggle('active', state.comparisonMode);
-  DOM.zoneSelector?.classList.toggle('hidden', !state.comparisonMode);
-
-  if (state.comparisonMode && !state.areaB.width) {
-    state.areaB = { ...state.area };
-    setAreaB(state.areaB);
-  }
-  saveState();
+  // Never leave the inputs editing a hidden zone
+  if (!state.comparisonMode) state.activeZone = 'A';
+  commit({ history: false, immediate: true });
 }
 
 function switchActiveZone(zone) {
   if (zone === state.activeZone) return;
   state.activeZone = zone;
-  setActiveZone(zone);
-  DOM.zoneABtn?.classList.toggle('active', zone === 'A');
-  DOM.zoneBBtn?.classList.toggle('active', zone === 'B');
-  updateInputs();
-  saveState();
+  commit({ history: false, immediate: true });
+}
+
+function handleUndo() {
+  const previous = histories[state.activeZone].undo();
+  if (!previous) return;
+  Object.assign(getActiveArea(state), previous);
+  commit({ history: false, immediate: true });
+}
+
+function handleRedo() {
+  const next = histories[state.activeZone].redo();
+  if (!next) return;
+  Object.assign(getActiveArea(state), next);
+  commit({ history: false, immediate: true });
 }
 
 function showRecap() {
-  if (!state.tablet) return;
-  const { tablet, area } = state;
-  showRecapModal({
-    width: formatNumber(area.width),
-    height: formatNumber(area.height),
+  const { tablet } = state;
+  const area = getActiveArea(state);
+  const tabletName = tablet.isCustom ? t('tablet.custom') : `${tablet.brand} ${tablet.model}`;
+  const data = {
+    zone: state.comparisonMode ? state.activeZone : '',
+    tablet: `${tabletName} (${formatInputNumber(tablet.width)} × ${formatInputNumber(tablet.height)} mm)`,
+    width: formatInputNumber(area.width),
+    height: formatInputNumber(area.height),
     ratio: calculateRatioString(area.width, area.height),
-    surface: (area.width * area.height).toFixed(1),
-    coverageX: ((area.width / tablet.width) * 100).toFixed(1),
-    coverageY: ((area.height / tablet.height) * 100).toFixed(1),
-    position: `${formatNumber(area.x, 1)}, ${formatNumber(area.y, 1)}`,
-  });
+    surface: formatNumber(area.width * area.height, 1),
+    coverageX: formatNumber((area.width / tablet.width) * 100, 1),
+    coverageY: formatNumber((area.height / tablet.height) * 100, 1),
+    position: `${formatInputNumber(area.x)}, ${formatInputNumber(area.y)}`,
+    radius: area.radius,
+    rotation: area.rotation,
+  };
+  const copyText = [
+    'Osu!rea',
+    `${t('tablet.title')}: ${data.tablet}`,
+    `${t('area.size')}: ${data.width} × ${data.height} mm (${data.ratio})`,
+    `${t('area.position')}: ${data.position} mm`,
+    `${t('area.rotation')}: ${data.rotation}° · ${t('area.radius')}: ${data.radius} %`,
+  ].join('\n');
+  showRecapModal(data, copyText);
+}
+
+function onLocaleChanged() {
+  renderControls();
+  renderFavorites();
+  refreshTabletSelector();
+  refreshVisualizerLabels();
+  updateThemeToggle(DOM.themeBtn);
 }
 
 // ============================================================================
@@ -387,169 +429,110 @@ function showRecap() {
 // ============================================================================
 
 function setupControls() {
-  // Theme
   setupThemeToggle(DOM.themeBtn);
+  setupLanguageToggles(DOM.langButtons, onLocaleChanged);
 
-  // Language
-  setupLanguageDropdown({
-    langToggle: DOM.langToggle,
-    langMenu: DOM.langMenu,
-    langDropdown: DOM.langDropdown,
-    currentLang: DOM.currentLang,
+  // Width / height: live while typing, committed on change (blur, Enter)
+  for (const [input, side] of [
+    [DOM.widthInput, 'width'],
+    [DOM.heightInput, 'height'],
+  ]) {
+    input?.addEventListener(
+      'input',
+      debounce(() => onDimensionEdit(side, false), INPUT_DEBOUNCE_DELAY)
+    );
+    input?.addEventListener('change', () => onDimensionEdit(side, true));
+  }
+
+  // Centre X / Y
+  for (const input of [DOM.posXInput, DOM.posYInput]) {
+    input?.addEventListener(
+      'input',
+      debounce(() => onPositionEdit(input, false), INPUT_DEBOUNCE_DELAY)
+    );
+    input?.addEventListener('change', () => onPositionEdit(input, true));
+  }
+
+  // Radius: the slider snaps to 0 / 50 / 100, the number field is exact
+  DOM.radiusSlider?.addEventListener('input', () => {
+    updateRadius(state, Number(DOM.radiusSlider.value), true);
+    commit({ history: false });
+  });
+  DOM.radiusSlider?.addEventListener('change', () => commit());
+  DOM.radiusInput?.addEventListener('change', () => {
+    updateRadius(state, readNumber(DOM.radiusInput) ?? getActiveArea(state).radius);
+    commit();
   });
 
-  // Area dimensions
-  setupAreaDimensionInputs(DOM, forceUpdate => {
-    if (!DOM.widthInput || !DOM.heightInput || !state.tablet) return;
-    if (!forceUpdate && (DOM.widthInput.value === '' || DOM.heightInput.value === '')) return;
-    const activeArea = getActiveArea(state);
-    const width = parseFloat(DOM.widthInput.value) || activeArea.width;
-    const height = parseFloat(DOM.heightInput.value) || activeArea.height;
-    updateAreaDimensions(state, width, height, {
-      onUpdate: () => {
-        if (forceUpdate) {
-          DOM.widthInput.value = formatNumber(getActiveArea(state).width, 1);
-          DOM.heightInput.value = formatNumber(getActiveArea(state).height, 1);
-          pushAreaToHistory();
-        }
-        updatePositionInputs();
-        updateRatioDisplay();
-        debouncedSaveState();
-      },
-    });
-  }, _forceUpdate => {
-    if (!DOM.widthInput || !DOM.heightInput || !state.tablet) return;
-    const activeArea = getActiveArea(state);
-    const width = parseFloat(DOM.widthInput.value) || activeArea.width;
-    const height = parseFloat(DOM.heightInput.value) || activeArea.height;
-    updateAreaDimensions(state, width, height, {
-      onUpdate: () => {
-        DOM.widthInput.value = formatNumber(getActiveArea(state).width, 1);
-        DOM.heightInput.value = formatNumber(getActiveArea(state).height, 1);
-        pushAreaToHistory();
-        updatePositionInputs();
-        updateRatioDisplay();
-        debouncedSaveState();
-      },
-    });
+  // Rotation: the slider snaps to quarter turns, the number field is exact
+  DOM.rotationSlider?.addEventListener('input', () => {
+    updateRotation(state, Number(DOM.rotationSlider.value), true);
+    commit({ history: false });
+  });
+  DOM.rotationSlider?.addEventListener('change', () => commit());
+  DOM.rotationInput?.addEventListener('change', () => {
+    updateRotation(state, readNumber(DOM.rotationInput) ?? getActiveArea(state).rotation);
+    commit();
   });
 
-  // Position
-  setupPositionInputs(DOM, forceUpdate => {
-    if (!DOM.posXInput || !DOM.posYInput || !state.tablet) return;
-    if (!forceUpdate && (DOM.posXInput.value === '' || DOM.posYInput.value === '')) return;
-    const activeArea = getActiveArea(state);
-    const x = parseFloat(DOM.posXInput.value) || activeArea.x;
-    const y = parseFloat(DOM.posYInput.value) || activeArea.y;
-    updateAreaPosition(state, x, y, {
-      onUpdate: () => {
-        if (forceUpdate) {
-          DOM.posXInput.value = formatNumber(getActiveArea(state).x, 1);
-          DOM.posYInput.value = formatNumber(getActiveArea(state).y, 1);
-          pushAreaToHistory();
-        }
-        debouncedSaveState();
-      },
-    });
-  }, _forceUpdate => {
-    if (!DOM.posXInput || !DOM.posYInput || !state.tablet) return;
-    const activeArea = getActiveArea(state);
-    const x = parseFloat(DOM.posXInput.value) || activeArea.x;
-    const y = parseFloat(DOM.posYInput.value) || activeArea.y;
-    updateAreaPosition(state, x, y, {
-      onUpdate: () => {
-        DOM.posXInput.value = formatNumber(getActiveArea(state).x, 1);
-        DOM.posYInput.value = formatNumber(getActiveArea(state).y, 1);
-        pushAreaToHistory();
-        debouncedSaveState();
-      },
-    });
-  });
-
-  // Radius
-  setupRadiusControls(DOM, () => {
-    const value = parseInt(DOM.radiusSlider?.value, 10) || 0;
-    const finalValue = updateRadius(state, value, true);
-    if (DOM.radiusSlider) DOM.radiusSlider.value = finalValue;
-    if (DOM.radiusInput) DOM.radiusInput.value = finalValue;
-    debouncedSaveState();
-  }, () => {
-    const value = parseInt(DOM.radiusInput?.value, 10) || 0;
-    const finalValue = updateRadius(state, value, false);
-    if (DOM.radiusSlider) DOM.radiusSlider.value = finalValue;
-    if (DOM.radiusInput) DOM.radiusInput.value = finalValue;
-    debouncedSaveState();
-  });
-
-  // Rotation
-  setupRotationControls(DOM, () => {
-    const value = parseInt(DOM.rotationSlider?.value, 10) || 0;
-    const finalValue = updateRotation(state, value, true);
-    if (DOM.rotationSlider) DOM.rotationSlider.value = finalValue;
-    if (DOM.rotationInput) DOM.rotationInput.value = finalValue;
-    debouncedSaveState();
-  }, () => {
-    const value = parseInt(DOM.rotationInput?.value, 10) || 0;
-    const finalValue = updateRotation(state, value, false);
-    if (DOM.rotationSlider) DOM.rotationSlider.value = finalValue;
-    if (DOM.rotationInput) DOM.rotationInput.value = finalValue;
-    debouncedSaveState();
-  });
-
-  // Lock ratio
-  setupLockRatioToggle(DOM, state, () => saveState());
-
-  // Grid
-  setupGridToggle(DOM, state, () => saveState());
-
-  // Toolbar buttons
-  setupToolbarButtons(DOM, {
-    onFullArea: () => setFullArea(state, {
-      onUpdate: () => {
-        updateInputs();
-        pushAreaToHistory();
-        saveState();
-      },
-    }),
-    onRecap: showRecap,
-    onSaveFavorite: () => {
-      if (state.tablet) {
-        saveCurrentAsFavorite(state.tablet, getActiveArea(state));
-      }
-    },
-    onToggleComparison: toggleComparisonMode,
-  });
-
-  // Zone selector
-  setupZoneSelector(DOM, switchActiveZone);
-
-  // Custom dimensions
-  setupCustomDimensions(DOM, state, (w, h) => {
-    state.tablet.width = w;
-    state.tablet.height = h;
-    setTablet(w, h);
-    updateTabletInfo();
-    clampAreaPosition(state);
-    centerArea(state, { onUpdate: updatePositionInputs });
+  DOM.lockRatioBtn?.addEventListener('click', () => {
+    state.lockRatio = !state.lockRatio;
+    renderControls();
     saveState();
   });
 
-  // Ratio presets
-  setupRatioPresets(state, targetRatio => {
-    applyRatioPreset(state, targetRatio, {
-      onUpdate: () => {
-        updateInputs();
-        pushAreaToHistory();
-        saveState();
-      },
+  DOM.gridBtn?.addEventListener('click', () => {
+    state.showGrid = !state.showGrid;
+    renderControls();
+    setGridVisible(state.showGrid);
+    saveState();
+  });
+
+  DOM.fullAreaBtn?.addEventListener('click', () => {
+    setFullArea(state);
+    commit({ immediate: true });
+  });
+
+  DOM.ratioButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [w, h] = btn.dataset.ratio.split(':').map(Number);
+      applyRatioPreset(state, w / h);
+      commit({ immediate: true });
     });
   });
 
-  // Area change from visualizer drag
-  setupAreaChangeListener(state, () => {
-    updateInputs();
-    debouncedPushHistory();
-    debouncedSaveState();
+  DOM.alignBtn?.addEventListener('click', () => {
+    if (isAlignMenuOpen()) {
+      closeAlignMenu();
+      return;
+    }
+    const rect = DOM.alignBtn.getBoundingClientRect();
+    openAlignMenu(rect.left, rect.bottom + 4, DOM.alignBtn);
+  });
+
+  DOM.recapBtn?.addEventListener('click', showRecap);
+  DOM.saveBtn?.addEventListener('click', () => {
+    saveCurrentAsFavorite(state.tablet, { ...getActiveArea(state) });
+  });
+  DOM.proPlayersBtn?.addEventListener('click', openProPlayersModal);
+  DOM.comparisonToggle?.addEventListener('click', toggleComparisonMode);
+  DOM.zoneButtons.forEach(btn =>
+    btn.addEventListener('click', () => switchActiveZone(btn.dataset.zone))
+  );
+
+  DOM.customWidth?.addEventListener('change', onCustomDimensionsEdit);
+  DOM.customHeight?.addEventListener('change', onCustomDimensionsEdit);
+
+  // Icons in static buttons
+  document.querySelectorAll('[data-icon]').forEach(el => {
+    el.innerHTML = icon(el.dataset.icon);
+  });
+
+  initKeyboardShortcuts(handleUndo, handleRedo);
+
+  // Save pending changes when the page is hidden or closed
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveState();
   });
 }
 
@@ -561,86 +544,31 @@ async function init() {
   cacheDOMElements();
   loadState();
   await initI18n();
-  initTheme();
-  updateLangDisplay(DOM.currentLang);
-  translatePage();
 
-  // Visualizer
-  if (DOM.visualizer) {
-    initVisualizer(DOM.visualizer);
-    if (state.tablet) {
-      setTablet(state.tablet.width, state.tablet.height);
-      clampAreaPosition(state, 'A');
-      clampAreaPosition(state, 'B');
-      setArea(state.area);
-      setAreaB(state.areaB);
-      setAreaRadius(state.area.radius || 0);
-      setAreaRotation(state.area.rotation || 0);
-    }
-    setGridVisible(state.showGrid);
-    setComparisonMode(state.comparisonMode);
-    setActiveZone(state.activeZone);
-  }
+  if (DOM.visualizer) initVisualizer(DOM.visualizer, onVisualizerChange);
 
-  // Tablet selector
   if (DOM.tabletSelector) {
-    await initTabletSelector(DOM.tabletSelector, onTabletSelected);
-    if (state.tablet) {
-      setCurrentTablet(state.tablet);
-      updateTabletInfo();
-    }
+    // The trigger renders synchronously; the list loads in the background.
+    initTabletSelector(DOM.tabletSelector, onTabletSelected);
+    setCurrentTablet(state.tablet);
   }
 
-  // Favorites
   if (DOM.favorites) {
-    initFavorites(DOM.favorites, onFavoriteSelected);
+    initFavorites(DOM.favorites, favorite => loadConfiguration(favorite.tablet, favorite.area));
   }
-
-  // Pro players (lazy-loaded on first modal open)
-  initProPlayers(onProPlayerSelected);
-
-  // Keyboard shortcuts
-  initKeyboardShortcuts(handleUndo, handleRedo);
+  initProPlayers(player => loadConfiguration({ ...player.tablet, isCustom: false }, player.area));
 
   setupControls();
-  updateInputs();
-
-  if (state.tablet) {
-    pushAreaToHistory();
-  }
-
-  // Comparison mode UI
-  if (state.comparisonMode) {
-    DOM.comparisonToggle?.classList.add('active');
-    DOM.zoneSelector?.classList.remove('hidden');
-    DOM.zoneABtn?.classList.toggle('active', state.activeZone === 'A');
-    DOM.zoneBBtn?.classList.toggle('active', state.activeZone === 'B');
-  }
+  clampAreaPosition(state, 'A');
+  clampAreaPosition(state, 'B');
+  render();
+  recordBothZones();
 }
 
-// Exports for favorites edit
-export {
-  state,
-  updateInputs,
-  setArea,
-  setAreaB,
-  setAreaRadius,
-  setAreaRotation,
-  setTablet,
-  setCurrentTablet,
-  updateTabletInfo,
-};
-
-// Global error handlers
 window.addEventListener('unhandledrejection', event => {
   console.error('Unhandled promise rejection:', event.reason);
 });
 
-window.addEventListener('error', event => {
-  console.error('Uncaught error:', event.error);
-});
-
-// Start app
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {

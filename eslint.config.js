@@ -16,7 +16,7 @@ export default [
     },
     rules: {
       // Possible Errors
-      'no-console': 'warn',
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
       'no-duplicate-imports': 'error',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],

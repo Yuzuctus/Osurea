@@ -1,362 +1,253 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Osu!rea - Tablet Area Visualizer</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
-      rel="stylesheet"
-    />
-
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Osu!rea · tablet area visualizer</title>
     <meta
       name="description"
-      content="Visualize and configure your osu! tablet area with precision"
+      content="Set, compare and save the active area of your osu! tablet, to the tenth of a millimetre."
     />
-    <meta name="theme-color" content="#52b788" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f3f6ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131c17" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Osu!rea - Tablet Area Visualizer" />
-    <meta property="og:description" content="Visualize and configure your osu! tablet area with precision. Compare areas, save favorites, and use pro player presets." />
+    <meta property="og:title" content="Osu!rea · tablet area visualizer" />
+    <meta
+      property="og:description"
+      content="Set, compare and save the active area of your osu! tablet. Pro player presets included."
+    />
     <meta property="og:url" content="https://osurea.pages.dev/" />
     <meta property="og:site_name" content="Osu!rea" />
-
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Osu!rea - Tablet Area Visualizer" />
-    <meta name="twitter:description" content="Visualize and configure your osu! tablet area with precision. Compare areas, save favorites, and use pro player presets." />
-
     <link rel="canonical" href="https://osurea.pages.dev/" />
+
+    <!-- Theme before first paint: an explicit choice wins, else the system decides. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
-    <div class="app">
-      <!-- Header -->
-      <header class="header">
-        <div class="header-brand">
-          <svg class="logo" width="28" height="28" viewBox="0 0 32 32" fill="none">
-            <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2" />
-            <circle cx="16" cy="16" r="6" fill="currentColor" />
-          </svg>
-          <h1 class="header-title">Osu!rea</h1>
-        </div>
+    <a class="ag-skip-link" href="#main" data-i18n="app.skip">Skip to content</a>
 
-        <div class="header-center">
-          <div id="tablet-selector" class="tablet-selector-compact"></div>
+    <header class="ag-site-header">
+      <div class="ag-container ag-site-header__inner">
+        <a class="ag-wordmark" href="./">Osu!<span class="ag-wordmark__accent">rea</span></a>
+        <nav class="ag-site-header__nav" aria-label="Main" data-i18n-aria-label="nav.label">
+          <a href="#main" aria-current="true" data-i18n="nav.area">Area</a>
+          <a href="#favorites" data-i18n="favorites.title">Favorites</a>
+          <a href="https://github.com/Yuzuctus/Osurea"><span data-i18n="footer.source">Source code</span> ↗</a>
+        </nav>
+        <div class="ag-site-header__controls">
+          <div class="os-langs" role="group" aria-label="Language" data-i18n-aria-label="lang.label">
+            <button class="ag-toggle" type="button" data-locale="en" lang="en" aria-pressed="true">EN</button>
+            <button class="ag-toggle" type="button" data-locale="fr" lang="fr" aria-pressed="false">FR</button>
+            <button class="ag-toggle" type="button" data-locale="es" lang="es" aria-pressed="false">ES</button>
+          </div>
+          <button class="ag-toggle" type="button" id="theme-toggle">Dark</button>
         </div>
+      </div>
+    </header>
 
-        <div class="header-actions">
-          <div class="lang-dropdown" id="lang-dropdown">
-            <button
-              id="lang-toggle"
-              class="header-btn lang-trigger"
-              title="Change language"
-              aria-label="Change language"
-              aria-expanded="false"
-            >
-              <span id="current-lang">EN</span>
-              <svg
-                class="lang-chevron"
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="lang-menu hidden" id="lang-menu">
-              <button class="lang-option" data-locale="en">
-                <span class="lang-code">EN</span>
-                <span class="lang-name">English</span>
+    <main id="main" class="ag-container os-main">
+      <div class="ag-page-head">
+        <div class="ag-page-head__copy">
+          <p class="ag-kicker" data-i18n="app.kicker">osu! · tablet area</p>
+          <h1 class="ag-page-head__title" data-i18n="app.title">Area visualizer</h1>
+          <p class="ag-page-head__lead" data-i18n="app.description">
+            Set, compare and save the active area of your tablet, to the tenth of a millimetre.
+          </p>
+        </div>
+        <div class="os-tablet" id="tablet-selector"></div>
+      </div>
+
+      <div class="os-workbench">
+        <!-- Preview -->
+        <section class="ag-section os-stage" aria-labelledby="stage-title">
+          <div class="ag-section__head">
+            <h2 class="ag-visually-hidden" id="stage-title" data-i18n="area.stage">Preview</h2>
+            <div class="ag-cluster os-tools">
+              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="toggle-grid" aria-pressed="true">
+                <span class="os-icon" data-icon="grid"></span><span data-i18n="area.grid">Grid</span>
               </button>
-              <button class="lang-option" data-locale="fr">
-                <span class="lang-code">FR</span>
-                <span class="lang-name">Français</span>
+              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="full-area">
+                <span class="os-icon" data-icon="crop"></span><span data-i18n="area.fullArea">Full area</span>
               </button>
-              <button class="lang-option" data-locale="es">
-                <span class="lang-code">ES</span>
-                <span class="lang-name">Español</span>
+              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="align-area" aria-haspopup="true" aria-expanded="false">
+                <span class="os-icon" data-icon="crosshairs"></span><span data-i18n="area.align">Align</span>
+              </button>
+              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="show-recap">
+                <span class="os-icon" data-icon="info"></span><span data-i18n="area.recap">Summary</span>
               </button>
             </div>
           </div>
-          <button
-            id="theme-toggle"
-            class="header-btn"
-            title="Toggle theme"
-            aria-label="Toggle theme"
-          ></button>
-        </div>
-      </header>
 
-      <!-- Main Content -->
-      <main class="main">
-        <!-- Top Row: Config + Visualizer -->
-        <div class="top-row">
-          <!-- Left: Area Config -->
-          <div class="config-panel">
-            <!-- Comparison Mode Toggle -->
-            <div class="comparison-toggle-wrapper" id="comparison-toggle-wrapper">
-              <button
-                id="toggle-comparison"
-                class="comparison-toggle"
-              data-i18n-title="comparison.toggle"
-              title="Comparison"
-                aria-label="Toggle comparison mode"
-              >
-                <span id="comparison-icon"></span>
-                <span data-i18n="comparison.toggle">Comparaison</span>
+          <div id="visualizer" class="os-visualizer"></div>
+
+          <dl class="os-readout">
+            <div>
+              <dt class="ag-kicker" data-i18n="area.size">Area</dt>
+              <dd><span id="area-display">100 × 62.5</span> <small>mm</small></dd>
+            </div>
+            <div>
+              <dt class="ag-kicker" data-i18n="area.ratio">Ratio</dt>
+              <dd id="ratio-display">16:10</dd>
+            </div>
+            <div>
+              <dt class="ag-kicker" data-i18n="tablet.title">Tablet</dt>
+              <dd><span id="tablet-dimensions">152 × 95</span> <small>mm</small></dd>
+            </div>
+          </dl>
+          <p class="ag-meta os-hint" id="drag-hint" data-i18n="area.dragHint">
+            Drag the area, or focus it and use the arrow keys (Shift: 10 mm). Right-click to align.
+          </p>
+        </section>
+
+        <!-- Settings -->
+        <section class="ag-section os-config" aria-labelledby="area-title">
+          <div class="ag-section__head">
+            <div class="ag-section__heading">
+              <p class="ag-kicker" data-i18n="area.kicker">Settings</p>
+              <h2 class="ag-section__title" id="area-title" data-i18n="area.title">Active area</h2>
+            </div>
+          </div>
+
+          <div class="ag-stack os-config__body">
+            <div class="os-compare">
+              <button class="ag-button ag-button--sm ag-button--quiet" type="button" id="toggle-comparison" aria-pressed="false">
+                <span class="os-icon" data-icon="layers"></span>
+                <span data-i18n="comparison.toggle">Compare two zones</span>
               </button>
-              <div class="zone-selector hidden" id="zone-selector">
-                <button class="zone-btn active" data-zone="A" id="zone-a-btn">
-                  <span class="zone-indicator zone-a"></span>
-                  <span>Zone A</span>
+              <div class="ag-segmented" role="group" id="zone-selector" aria-label="Zone being edited" data-i18n-aria-label="comparison.zones" hidden>
+                <button class="ag-segmented__item" type="button" data-zone="A" aria-pressed="true">
+                  <span class="os-swatch" aria-hidden="true"></span><span data-zone-label>Zone A</span>
                 </button>
-                <button class="zone-btn" data-zone="B" id="zone-b-btn">
-                  <span class="zone-indicator zone-b"></span>
-                  <span>Zone B</span>
+                <button class="ag-segmented__item" type="button" data-zone="B" aria-pressed="false">
+                  <span class="os-swatch" aria-hidden="true"></span><span data-zone-label>Zone B</span>
                 </button>
               </div>
             </div>
 
-            <!-- Section 1: Zone Configuration -->
-            <div class="config-card config-card-main">
-              <div class="config-header">
-                <h2 data-i18n="area.title">Zone Active</h2>
-                <div class="quick-tools header-tools">
-                  <button
-                    id="toggle-grid"
-                    class="tool-btn active"
-                    data-i18n-title="area.toggleGrid"
-                    title="Grid"
-                    aria-label="Toggle grid"
-                  >
-                    <span id="grid-icon"></span>
-                  </button>
-                  <button
-                    id="full-area"
-                    class="tool-btn"
-                    data-i18n-title="area.fullArea"
-                    title="Full Area"
-                    aria-label="Set full area"
-                  >
-                    <span id="fullarea-icon"></span>
-                  </button>
-                  <button
-                    id="show-recap"
-                    class="tool-btn"
-                    data-i18n-title="area.recap"
-                    title="Summary"
-                    aria-label="Show recap"
-                  >
-                    <span id="recap-icon"></span>
-                  </button>
-                </div>
+            <!-- Size -->
+            <div class="os-pair os-pair--lock">
+              <label class="ag-field">
+                <span class="ag-field__label" data-i18n="area.width">Width</span>
+                <span class="os-unit" data-unit="mm">
+                  <input class="ag-input" type="number" id="area-width" inputmode="decimal" step="any" min="1" value="100" />
+                </span>
+              </label>
+              <button class="ag-button ag-button--icon ag-button--quiet os-lock" type="button" id="lock-ratio" aria-pressed="true" aria-label="Lock the ratio" data-i18n-aria-label="area.lockRatio" data-i18n-title="area.lockRatio"></button>
+              <label class="ag-field">
+                <span class="ag-field__label" data-i18n="area.height">Height</span>
+                <span class="os-unit" data-unit="mm">
+                  <input class="ag-input" type="number" id="area-height" inputmode="decimal" step="any" min="1" value="62.5" />
+                </span>
+              </label>
+            </div>
+
+            <!-- Position -->
+            <div class="os-pair">
+              <label class="ag-field">
+                <span class="ag-field__label" data-i18n="area.x">Centre X</span>
+                <span class="os-unit" data-unit="mm">
+                  <input class="ag-input" type="number" id="area-pos-x" inputmode="decimal" step="any" min="0" value="76" />
+                </span>
+              </label>
+              <label class="ag-field">
+                <span class="ag-field__label" data-i18n="area.y">Centre Y</span>
+                <span class="os-unit" data-unit="mm">
+                  <input class="ag-input" type="number" id="area-pos-y" inputmode="decimal" step="any" min="0" value="47.5" />
+                </span>
+              </label>
+            </div>
+
+            <!-- Ratio presets -->
+            <div class="ag-field">
+              <span class="ag-field__label" id="ratio-label" data-i18n="area.ratio">Ratio</span>
+              <div class="ag-segmented ag-segmented--quiet os-ratios" role="group" aria-labelledby="ratio-label">
+                <button class="ag-segmented__item" type="button" data-ratio="16:9" aria-pressed="false">16:9</button>
+                <button class="ag-segmented__item" type="button" data-ratio="16:10" aria-pressed="false">16:10</button>
+                <button class="ag-segmented__item" type="button" data-ratio="4:3" aria-pressed="false">4:3</button>
+                <button class="ag-segmented__item" type="button" data-ratio="1:1" aria-pressed="false">1:1</button>
               </div>
+            </div>
 
-              <div class="config-body">
-                <!-- Dimensions -->
-                <div class="field-row">
-                  <div class="field">
-                    <span class="field-label">W</span>
-                    <input
-                      type="number"
-                      id="area-width"
-                      value="100"
-                      step="0.1"
-                      min="1"
-                      aria-label="Area width in millimeters"
-                    />
-                    <span class="field-unit">mm</span>
-                  </div>
-                  <button
-                    id="lock-ratio"
-                    class="btn-lock"
-                    title="Lock ratio"
-                    aria-label="Lock aspect ratio"
-                  ></button>
-                  <div class="field">
-                    <span class="field-label">H</span>
-                    <input
-                      type="number"
-                      id="area-height"
-                      value="62.5"
-                      step="0.1"
-                      min="1"
-                      aria-label="Area height in millimeters"
-                    />
-                    <span class="field-unit">mm</span>
-                  </div>
-                </div>
+            <!-- Radius -->
+            <div class="os-slider">
+              <label class="ag-field__label" for="area-radius" data-i18n="area.radius">Corner radius</label>
+              <input class="os-range" type="range" id="area-radius" min="0" max="100" step="1" value="0" />
+              <span class="os-unit os-unit--sm" data-unit="%">
+                <input class="ag-input" type="number" id="radius-value" inputmode="numeric" min="0" max="100" value="0" aria-labelledby="radius-label-num" />
+              </span>
+              <span class="ag-visually-hidden" id="radius-label-num" data-i18n="area.radius">Corner radius</span>
+            </div>
 
-                <!-- Position -->
-                <div class="field-row">
-                  <div class="field">
-                    <span class="field-label">X</span>
-                    <input
-                      type="number"
-                      id="area-pos-x"
-                      value="76"
-                      step="0.1"
-                      min="0"
-                      aria-label="Area position X"
-                    />
-                  </div>
-                  <div class="field">
-                    <span class="field-label">Y</span>
-                    <input
-                      type="number"
-                      id="area-pos-y"
-                      value="47.5"
-                      step="0.1"
-                      min="0"
-                      aria-label="Area position Y"
-                    />
-                  </div>
-                </div>
+            <!-- Rotation -->
+            <div class="os-slider">
+              <label class="ag-field__label" for="area-rotation" data-i18n="area.rotation">Rotation</label>
+              <input class="os-range" type="range" id="area-rotation" min="-180" max="180" step="1" value="0" />
+              <span class="os-unit os-unit--sm" data-unit="°">
+                <input class="ag-input" type="number" id="rotation-value" inputmode="numeric" min="-180" max="180" value="0" aria-labelledby="rotation-label-num" />
+              </span>
+              <span class="ag-visually-hidden" id="rotation-label-num" data-i18n="area.rotation">Rotation</span>
+            </div>
 
-                <!-- Radius slider -->
-                <div class="field-slider">
-                  <span class="field-label" data-i18n="area.radius">Coins</span>
-                  <input
-                    type="range"
-                    id="area-radius"
-                    min="0"
-                    max="100"
-                    value="0"
-                    aria-label="Corner radius"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    aria-valuenow="0"
-                  />
-                  <input
-                    type="number"
-                    id="radius-value"
-                    class="field-value-input"
-                    value="0"
-                    min="0"
-                    max="100"
-                    aria-label="Radius value"
-                  />
-                  <span class="field-unit">%</span>
-                </div>
-
-                <!-- Rotation slider -->
-                <div class="field-slider">
-                  <span class="field-label" data-i18n="area.rotation">Rotation</span>
-                  <input
-                    type="range"
-                    id="area-rotation"
-                    min="-180"
-                    max="180"
-                    value="0"
-                    aria-label="Rotation angle"
-                    aria-valuemin="-180"
-                    aria-valuemax="180"
-                    aria-valuenow="0"
-                  />
-                  <input
-                    type="number"
-                    id="rotation-value"
-                    class="field-value-input"
-                    value="0"
-                    min="-180"
-                    max="180"
-                    aria-label="Rotation value"
-                  />
-                  <span class="field-unit">°</span>
-                </div>
-
-                <!-- Custom tablet dimensions (shown when custom mode) -->
-                <div id="custom-dimensions" class="custom-dimensions-section hidden">
-                  <div class="section-divider"></div>
-                  <div class="section-label" data-i18n="tablet.tabletDimensions">
-                    Tablet Dimensions
-                  </div>
-                  <div class="field-row">
-                    <div class="field">
-                      <span class="field-label">W</span>
-                      <input
-                        type="number"
-                        id="custom-width"
-                        value="152"
-                        step="0.1"
-                        min="1"
-                        aria-label="Custom tablet width"
-                      />
-                      <span class="field-unit">mm</span>
-                    </div>
-                    <div class="field">
-                      <span class="field-label">H</span>
-                      <input
-                        type="number"
-                        id="custom-height"
-                        value="95"
-                        step="0.1"
-                        min="1"
-                        aria-label="Custom tablet height"
-                      />
-                      <span class="field-unit">mm</span>
-                    </div>
-                  </div>
-                  <div class="ratio-presets">
-                    <span class="field-label" data-i18n="area.ratio">Ratio</span>
-                    <div class="preset-buttons">
-                      <button class="preset-btn" data-ratio="16:9">16:9</button>
-                      <button class="preset-btn" data-ratio="16:10">16:10</button>
-                      <button class="preset-btn" data-ratio="4:3">4:3</button>
-                      <button class="preset-btn" data-ratio="1:1">1:1</button>
-                    </div>
-                  </div>
-                </div>
+            <!-- Custom tablet dimensions (custom mode only) -->
+            <fieldset class="os-custom" id="custom-dimensions" hidden>
+              <legend class="ag-kicker" data-i18n="tablet.customTitle">Tablet dimensions</legend>
+              <div class="os-pair">
+                <label class="ag-field">
+                  <span class="ag-field__label" data-i18n="area.width">Width</span>
+                  <span class="os-unit" data-unit="mm">
+                    <input class="ag-input" type="number" id="custom-width" inputmode="decimal" step="any" min="10" value="152" />
+                  </span>
+                </label>
+                <label class="ag-field">
+                  <span class="ag-field__label" data-i18n="area.height">Height</span>
+                  <span class="os-unit" data-unit="mm">
+                    <input class="ag-input" type="number" id="custom-height" inputmode="decimal" step="any" min="10" value="95" />
+                  </span>
+                </label>
               </div>
+            </fieldset>
 
-              <!-- Actions Row -->
-              <div class="config-actions-compact">
-                <button id="save-favorite" class="btn-primary btn-sm" data-i18n-title="favorites.save" title="Save as Favorite">
-                  <span id="save-icon"></span>
-                  <span data-i18n="favorites.saveShort">Favori</span>
-                </button>
-                <button id="pro-players-btn" class="btn-secondary btn-sm" title="Pro Players">
-                  <span id="pro-players-icon"></span>
-                  <span data-i18n="proPlayers.short">Pros</span>
-                </button>
-              </div>
+            <div class="ag-cluster os-config__actions">
+              <button class="ag-button ag-button--solid" type="button" id="save-favorite">
+                <span data-i18n="favorites.save">Save as favorite</span>
+              </button>
+              <button class="ag-button" type="button" id="pro-players-btn">
+                <span class="os-icon" data-icon="users"></span>
+                <span data-i18n="proPlayers.title">Pro players</span>
+              </button>
             </div>
           </div>
+        </section>
+      </div>
 
-          <!-- Right: Visualizer -->
-          <div class="visualizer-panel">
-            <div class="visualizer-frame">
-              <div id="visualizer" class="visualizer"></div>
+      <section class="ag-section os-favorites" id="favorites" aria-labelledby="favorites-title"></section>
+    </main>
 
-              <!-- Info overlay -->
-              <div class="visualizer-info">
-                <span class="info-dimensions" id="area-display">100 × 62.5</span>
-                <span class="info-ratio" id="ratio-display">16:10</span>
-              </div>
-            </div>
+    <footer class="ag-footer">
+      <div class="ag-container ag-footer__inner">
+        <div class="ag-footer__cols">
+          <div>
+            <p class="ag-kicker" data-i18n="footer.links">Links</p>
+            <ul>
+              <li><a href="https://github.com/Yuzuctus/Osurea"><span data-i18n="footer.source">Source code</span> ↗</a></li>
+              <li><a href="https://yuzuctus.fr">yuzuctus.fr ↗</a></li>
+              <li><a href="https://osu.ppy.sh">osu! ↗</a></li>
+            </ul>
           </div>
         </div>
+        <p class="ag-footer__meta">
+          <span>© 2026 Yuzuctus</span><span data-i18n="footer.madeBy">Made for osu! players</span>
+        </p>
+      </div>
+    </footer>
 
-        <!-- Bottom: Favorites Full Width -->
-        <div class="favorites-section">
-          <div id="favorites" class="favorites"></div>
-        </div>
-      </main>
-    </div>
+    <div id="aria-live-region" class="ag-visually-hidden" aria-live="polite" aria-atomic="true"></div>
 
     <script type="module" src="/src/main.js"></script>
-
-    <!-- Notification region for screen readers -->
-    <div id="aria-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   </body>
 </html>

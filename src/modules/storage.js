@@ -1,6 +1,6 @@
 /**
  * Osu!rea - Storage Module
- * Preferences and favorites management with localStorage
+ * Preferences, favorites and theme persistence with localStorage
  * @module storage
  */
 
@@ -23,22 +23,7 @@ import { DEFAULT_TABLET, DEFAULT_AREA, STORAGE_KEYS } from '../constants/index.j
  * @property {number} x - Center X position in mm
  * @property {number} y - Center Y position in mm
  * @property {number} radius - Corner radius percentage (0-100)
- * @property {boolean} [ratioLocked] - Whether aspect ratio is locked
- * @property {number} [ratio] - Current aspect ratio
- */
-
-/**
- * @typedef {Object} UIPrefs
- * @property {'dark'|'light'} theme - Current theme
- * @property {string} locale - Current locale code
- * @property {boolean} gridVisible - Whether grid is visible
- */
-
-/**
- * @typedef {Object} Preferences
- * @property {Tablet} tablet - Tablet configuration
- * @property {Area} area - Area configuration
- * @property {UIPrefs} ui - UI preferences
+ * @property {number} rotation - Rotation in degrees (-180 to 180)
  */
 
 /**
@@ -53,18 +38,14 @@ import { DEFAULT_TABLET, DEFAULT_AREA, STORAGE_KEYS } from '../constants/index.j
 
 const PREFS_KEY = STORAGE_KEYS.PREFS;
 const FAVORITES_KEY = STORAGE_KEYS.FAVORITES;
+const THEME_KEY = STORAGE_KEYS.THEME;
 
 /**
  * Default preferences
  */
 const DEFAULT_PREFS = {
   tablet: { ...DEFAULT_TABLET },
-  area: { ...DEFAULT_AREA, ratioLocked: true, ratio: 1.6 },
-  ui: {
-    theme: 'dark',
-    locale: 'en',
-    gridVisible: true,
-  },
+  area: { ...DEFAULT_AREA },
 };
 
 /**
@@ -85,6 +66,18 @@ function deepMerge(target, source) {
   return result;
 }
 
+/**
+ * Read a number, falling back when the value is missing or not finite.
+ * Zero is a valid value (x = 0, rotation = 0), so `||` is not used.
+ * @param {*} value
+ * @param {number} fallback
+ * @returns {number}
+ */
+function toNumber(value, fallback) {
+  const n = typeof value === 'string' ? parseFloat(value) : value;
+  return typeof n === 'number' && Number.isFinite(n) ? n : fallback;
+}
+
 // ============================================
 // PREFERENCES
 // ============================================
@@ -98,12 +91,14 @@ export function loadPrefs() {
     const stored = localStorage.getItem(PREFS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      return deepMerge(DEFAULT_PREFS, parsed);
+      if (parsed && typeof parsed === 'object') {
+        return deepMerge(DEFAULT_PREFS, parsed);
+      }
     }
   } catch (e) {
     console.warn('Failed to load preferences:', e);
   }
-  return { ...DEFAULT_PREFS };
+  return deepMerge(DEFAULT_PREFS, {});
 }
 
 /**
@@ -165,14 +160,48 @@ export function getPref(path, defaultValue = null) {
 // ============================================
 
 /**
- * Get all favorites
- * @returns {Array}
+ * Normalize an area so every field is a finite number.
+ * @param {object} [area]
+ * @returns {Area}
+ */
+export function normalizeArea(area = {}) {
+  return {
+    width: toNumber(area.width, DEFAULT_AREA.width),
+    height: toNumber(area.height, DEFAULT_AREA.height),
+    x: toNumber(area.x, DEFAULT_AREA.x),
+    y: toNumber(area.y, DEFAULT_AREA.y),
+    radius: toNumber(area.radius, 0),
+    rotation: toNumber(area.rotation, 0),
+  };
+}
+
+/**
+ * Normalize a tablet description.
+ * @param {object} [tablet]
+ * @returns {Tablet}
+ */
+export function normalizeTablet(tablet = {}) {
+  return {
+    brand: String(tablet.brand ?? ''),
+    model: String(tablet.model ?? ''),
+    width: toNumber(tablet.width, DEFAULT_TABLET.width),
+    height: toNumber(tablet.height, DEFAULT_TABLET.height),
+    isCustom: Boolean(tablet.isCustom),
+  };
+}
+
+/**
+ * Get all favorites (entries that are not objects are dropped).
+ * @returns {Favorite[]}
  */
 export function getFavorites() {
   try {
     const stored = localStorage.getItem(FAVORITES_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(f => f && typeof f === 'object' && f.id);
+      }
     }
   } catch (e) {
     console.warn('Failed to load favorites:', e);
@@ -182,7 +211,7 @@ export function getFavorites() {
 
 /**
  * Save favorites array
- * @param {Array} favorites
+ * @param {Favorite[]} favorites
  */
 function saveFavorites(favorites) {
   try {
@@ -194,8 +223,8 @@ function saveFavorites(favorites) {
 
 /**
  * Add a new favorite
- * @param {object} config - { name, tablet, area }
- * @returns {object} - Created favorite with id and createdAt
+ * @param {object} config - { name, comment, tablet, area }
+ * @returns {Favorite} - Created favorite with id and createdAt
  */
 export function addFavorite(config) {
   const favorites = getFavorites();
@@ -204,21 +233,8 @@ export function addFavorite(config) {
     id: generateId(),
     name: config.name || 'Untitled',
     comment: config.comment || '',
-    tablet: {
-      brand: config.tablet?.brand || '',
-      model: config.tablet?.model || '',
-      width: config.tablet?.width || 0,
-      height: config.tablet?.height || 0,
-      isCustom: config.tablet?.isCustom || false,
-    },
-    area: {
-      width: config.area?.width || 0,
-      height: config.area?.height || 0,
-      x: config.area?.x || 0,
-      y: config.area?.y || 0,
-      radius: config.area?.radius || 0,
-      ratio: config.area?.ratio || 1,
-    },
+    tablet: normalizeTablet(config.tablet),
+    area: normalizeArea(config.area),
     createdAt: new Date().toISOString(),
   };
 
@@ -232,7 +248,7 @@ export function addFavorite(config) {
  * Update an existing favorite
  * @param {string} id
  * @param {object} updates
- * @returns {object|null}
+ * @returns {Favorite|null}
  */
 export function updateFavorite(id, updates) {
   const favorites = getFavorites();
@@ -271,7 +287,7 @@ export function removeFavorite(id) {
 /**
  * Get a single favorite by ID
  * @param {string} id
- * @returns {object|null}
+ * @returns {Favorite|null}
  */
 export function getFavorite(id) {
   const favorites = getFavorites();
@@ -279,21 +295,30 @@ export function getFavorite(id) {
 }
 
 // ============================================
-// THEME (thin wrappers used by themeController)
+// THEME
 // ============================================
 
 /**
- * Get current theme
- * @returns {'dark'|'light'}
+ * Get the theme the user chose explicitly.
+ * @returns {'dark'|'light'|null} - null when the system decides
  */
 export function getTheme() {
-  return getPref('ui.theme', 'dark');
+  try {
+    const theme = localStorage.getItem(THEME_KEY);
+    return theme === 'light' || theme === 'dark' ? theme : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Set theme
+ * Remember the user's theme choice.
  * @param {'dark'|'light'} theme
  */
 export function setTheme(theme) {
-  updatePref('ui.theme', theme);
+  try {
+    localStorage.setItem(THEME_KEY, theme);
+  } catch (e) {
+    console.warn('Failed to save theme:', e);
+  }
 }

@@ -2,7 +2,7 @@
  * Tests for storage.js module
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   loadPrefs,
   savePrefs,
@@ -180,32 +180,46 @@ describe('Theme', () => {
   beforeEach(() => {
     localStorageMock.clear();
     vi.clearAllMocks();
-    // Mock document
-    global.document = {
-      documentElement: {
-        setAttribute: vi.fn(),
-      },
-    };
   });
 
-  afterEach(() => {
+  it('should return null when the user never chose (the system decides)', () => {
+    expect(getTheme()).toBeNull();
+  });
+
+  it('should save and read an explicit choice', () => {
+    setTheme('light');
+    expect(getTheme()).toBe('light');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('osurea:theme', 'light');
+  });
+
+  it('should ignore an unknown stored value', () => {
+    localStorageMock.setItem('osurea:theme', 'sepia');
+    expect(getTheme()).toBeNull();
+  });
+});
+
+describe('Favorite normalization', () => {
+  beforeEach(() => {
     localStorageMock.clear();
   });
 
-  describe('getTheme', () => {
-    it('should return dark theme as default', () => {
-      // Clear any stored theme to ensure defaults
-      localStorageMock.clear();
-      const theme = getTheme();
-      // getTheme returns 'dark' by default from DEFAULT_PREFS
-      expect(['dark', 'light']).toContain(theme);
+  it('should keep rotation and zero values', () => {
+    const fav = addFavorite({
+      name: 'Rotated',
+      tablet: { brand: 'Wacom', model: 'CTL-472', width: 152, height: 95 },
+      area: { width: 100, height: 62.5, x: 50, y: 31.25, radius: 0, rotation: -90 },
     });
+    expect(fav.area.rotation).toBe(-90);
+    expect(fav.area.radius).toBe(0);
   });
 
-  describe('setTheme', () => {
-    it('should save theme preference', () => {
-      setTheme('light');
-      expect(getPref('ui.theme')).toBe('light');
-    });
+  it('should drop entries that are not objects', () => {
+    localStorageMock.setItem('osurea:favorites', JSON.stringify([null, 3, { id: 'a', name: 'A' }]));
+    expect(getFavorites()).toEqual([{ id: 'a', name: 'A' }]);
+  });
+
+  it('should return an empty list when storage holds something else', () => {
+    localStorageMock.setItem('osurea:favorites', JSON.stringify({ not: 'an array' }));
+    expect(getFavorites()).toEqual([]);
   });
 });

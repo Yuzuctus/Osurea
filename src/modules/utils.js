@@ -38,6 +38,36 @@ export function clamp(value, min, max) {
 }
 
 /**
+ * Half extents of an area's bounding box, rotation included
+ * @param {{width: number, height: number, rotation?: number}} area
+ * @returns {{halfW: number, halfH: number}}
+ */
+export function getHalfExtents(area) {
+  const rad = ((area.rotation || 0) * Math.PI) / 180;
+  const cos = Math.abs(Math.cos(rad));
+  const sin = Math.abs(Math.sin(rad));
+  return {
+    halfW: (area.width * cos + area.height * sin) / 2,
+    halfH: (area.width * sin + area.height * cos) / 2,
+  };
+}
+
+/**
+ * Clamp an area's centre so its rotated box stays on the tablet. A box
+ * larger than the tablet is centred on that axis.
+ * @param {Object} area - { width, height, x, y, rotation? }
+ * @param {{width: number, height: number}} tablet
+ * @returns {{x: number, y: number}}
+ */
+export function clampCentre(area, tablet, x = area.x, y = area.y) {
+  const { halfW, halfH } = getHalfExtents(area);
+  return {
+    x: halfW * 2 >= tablet.width ? tablet.width / 2 : clamp(x, halfW, tablet.width - halfW),
+    y: halfH * 2 >= tablet.height ? tablet.height / 2 : clamp(y, halfH, tablet.height - halfH),
+  };
+}
+
+/**
  * Debounce a function
  * @param {Function} fn - Function to debounce
  * @param {number} delay - Delay in milliseconds
@@ -116,6 +146,17 @@ export function formatNumber(value, decimals = 2) {
 }
 
 /**
+ * Format a number for an input field: up to 3 decimals, no trailing zeros
+ * (76 → "76", 62.5 → "62.5", 47.123456 → "47.123")
+ * @param {number} value
+ * @returns {string}
+ */
+export function formatInputNumber(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+  return String(Number(value.toFixed(3)));
+}
+
+/**
  * Generate unique ID using crypto API with fallback
  * @returns {string}
  */
@@ -149,8 +190,6 @@ export function generateId() {
  * @property {'A'|'B'} activeZone - Currently active zone
  * @property {boolean} comparisonMode - Whether comparison mode is on
  * @property {boolean} lockRatio - Whether aspect ratio is locked
- * @property {number} lockedRatio - Locked ratio for zone A
- * @property {number} lockedRatioB - Locked ratio for zone B
  * @property {boolean} showGrid - Whether grid is visible
  */
 
@@ -161,27 +200,4 @@ export function generateId() {
  */
 export function getActiveArea(state) {
   return state.activeZone === 'A' ? state.area : state.areaB;
-}
-
-/**
- * Get the locked ratio for the active zone
- * @param {AppState} state - Application state
- * @returns {number} - The locked ratio
- */
-export function getActiveLockedRatio(state) {
-  return state.activeZone === 'A' ? state.lockedRatio : state.lockedRatioB;
-}
-
-/**
- * Update the active area in the visualizer
- * @param {AppState} state - Application state
- * @param {Function} setArea - Function to update zone A
- * @param {Function} setAreaB - Function to update zone B
- */
-export function syncActiveArea(state, setArea, setAreaB) {
-  if (state.activeZone === 'A') {
-    setArea(state.area);
-  } else {
-    setAreaB(state.areaB);
-  }
 }

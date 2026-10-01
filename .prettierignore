@@ -1,3 +1,4 @@
 dist
 node_modules
 *.min.js
+src/styles/agrume/

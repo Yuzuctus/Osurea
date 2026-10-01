@@ -43,9 +43,13 @@ async function loadLocale(locale) {
  */
 function detectLocale() {
   // Check localStorage first
-  const stored = localStorage.getItem(STORAGE_KEYS.LOCALE);
-  if (stored && SUPPORTED_LOCALES.includes(stored)) {
-    return stored;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.LOCALE);
+    if (stored && SUPPORTED_LOCALES.includes(stored)) {
+      return stored;
+    }
+  } catch {
+    // Storage unavailable: fall through to the browser language
   }
 
   // Check browser language
@@ -73,10 +77,6 @@ export async function initI18n() {
 
   translatePage();
 
-  // Update language selector
-  const langSelect = document.querySelector('#lang-select');
-  if (langSelect) langSelect.value = currentLocale;
-
   return currentLocale;
 }
 
@@ -92,7 +92,7 @@ export function t(key, params = {}) {
 
   // Simple interpolation: {{name}} -> value
   Object.entries(params).forEach(([param, value]) => {
-    text = text.replace(new RegExp(`{{${param}}}`, 'g'), value);
+    text = text.split(`{{${param}}}`).join(String(value));
   });
 
   return text;
@@ -126,8 +126,17 @@ export function translatePage() {
     }
   });
 
-  // Update html lang attribute
+  // Translate accessible names
+  document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+    const key = el.getAttribute('data-i18n-aria-label');
+    if (key) {
+      el.setAttribute('aria-label', t(key));
+    }
+  });
+
+  // Update html lang attribute and document title
   document.documentElement.lang = currentLocale;
+  document.title = `Osu!rea · ${t('app.title')}`;
 }
 
 /**
@@ -142,7 +151,11 @@ export async function setLocale(locale) {
 
   currentLocale = locale;
   translations = await loadLocale(locale);
-  localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
+  try {
+    localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
+  } catch {
+    // Storage unavailable: the choice lasts for this visit
+  }
   translatePage();
 
   // Dispatch event for components that need to react
@@ -155,24 +168,4 @@ export async function setLocale(locale) {
  */
 export function getLocale() {
   return currentLocale;
-}
-
-/**
- * Get all supported locales with labels
- * @returns {Array<{code: string, label: string}>}
- */
-export function getSupportedLocales() {
-  return [
-    { code: 'en', label: 'English' },
-    { code: 'fr', label: 'Français' },
-    { code: 'es', label: 'Español' },
-  ];
-}
-
-/**
- * Get available locale codes
- * @returns {Array<string>}
- */
-export function getAvailableLocales() {
-  return SUPPORTED_LOCALES;
 }
