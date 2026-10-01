@@ -730,21 +730,50 @@ body {
 
 /* ============================================================ records */
 
-/* Favorites: rows across the two settings columns, a lighter title than
-   the kit's showcase collection */
+/* Favorites: a grid of compact cards, filled left then right (two side
+   by side when there is room, one on a phone) */
 .os-favorites .os-records {
-  --ag-record-preview: 6rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  /* Rows keep their content's height even when the list is a scroll box */
+  grid-auto-rows: max-content;
+  align-content: start;
+  column-gap: var(--ag-space-6);
 }
 .os-favorites .ag-record {
   min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 4.5rem;
+  align-items: start;
+  gap: var(--ag-space-2) var(--ag-space-3);
   padding-block: var(--ag-space-3);
 }
+.os-favorites .ag-record__copy {
+  grid-column: 1;
+  grid-row: 1;
+  padding-right: 0;
+}
 .os-favorites .ag-record__title {
-  font: 600 var(--ag-text-xl) / 1.1 var(--ag-font-title);
+  font: 600 var(--ag-text-lg) / 1.15 var(--ag-font-sans);
   letter-spacing: 0;
 }
+.os-favorites .ag-record__meta {
+  margin-top: 2px;
+  font-size: var(--ag-text-xs);
+}
+.os-favorites .ag-record__actions {
+  grid-column: 1;
+  grid-row: 2;
+  justify-content: flex-start;
+  gap: var(--ag-space-2);
+  padding-right: 0;
+}
+.os-favorites .ag-record__media {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
 .os-favorites .os-preview {
-  max-height: 4rem;
+  max-height: 3rem;
 }
 
 .os-records {
