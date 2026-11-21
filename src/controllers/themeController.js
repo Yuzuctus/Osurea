@@ -1,16 +1,15 @@
 /**
- * Osu!rea - Theme Controller
- * Agrume convention: <html data-theme> only when the user chose a theme,
- * otherwise the system preference decides. public/theme-init.js applies the
- * stored choice before the first paint.
+ * Osu!rea - Theme Controller (Yuzuctus Design System v3 — Négatif / Positif)
+ * Synchronises <html data-film="negative|positive"> and <html data-theme="dark|light">,
+ * supports circular View Transition wave and keyboard shortcut 'N'.
  * @module controllers/themeController
  */
 
 import { getTheme, setTheme } from '../modules/storage.js';
 import { t } from '../modules/i18n.js';
 
-/** Paper colour of each theme, for <meta name="theme-color"> */
-const THEME_COLORS = { light: '#f3f6ea', dark: '#131c17' };
+/** Ground colour of each theme, for <meta name="theme-color"> */
+const THEME_COLORS = { light: '#f5eee0', dark: '#0b0f0e' };
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -19,6 +18,9 @@ const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
  * @returns {'dark'|'light'}
  */
 export function getEffectiveTheme() {
+  const film = document.documentElement.dataset.film;
+  if (film === 'positive') return 'light';
+  if (film === 'negative') return 'dark';
   const chosen = document.documentElement.dataset.theme;
   if (chosen === 'light' || chosen === 'dark') return chosen;
   return darkQuery.matches ? 'dark' : 'light';
@@ -30,39 +32,122 @@ export function getEffectiveTheme() {
  */
 function updateThemeColor(theme) {
   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
-    const scheme = meta.media.includes('dark') ? 'dark' : 'light';
+    const scheme = meta.media && meta.media.includes('light') ? 'light' : 'dark';
     meta.content = THEME_COLORS[theme ?? scheme];
   });
 }
 
 /**
- * Label the toggle with the theme it switches to
+ * Label the FilmSwitch with the current active mode (Négatif / Positif)
  * @param {HTMLElement|null} button
  */
 export function updateThemeToggle(button) {
   if (!button) return;
-  const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
-  button.textContent = t(next === 'dark' ? 'theme.dark' : 'theme.light');
-  button.setAttribute('aria-label', t(next === 'dark' ? 'theme.toDark' : 'theme.toLight'));
+  const current = getEffectiveTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  const labelText = t(current === 'dark' ? 'theme.dark' : 'theme.light');
+  const labelEl = button.querySelector('#theme-toggle-label');
+  if (labelEl) {
+    labelEl.textContent = labelText;
+  } else {
+    button.textContent = labelText;
+  }
+  const ariaText = t(next === 'dark' ? 'theme.toDark' : 'theme.toLight');
+  button.setAttribute('aria-label', ariaText);
+  button.setAttribute('title', ariaText);
 }
 
 /**
- * Wire the theme toggle
+ * Apply theme change with circular View Transition wave
+ * @param {'dark'|'light'} next
+ * @param {HTMLElement|null} button
+ * @param {{x: number, y: number}} [origin]
+ */
+function triggerFilmSwitch(next, button, origin) {
+  const film = next === 'light' ? 'positive' : 'negative';
+
+  const apply = () => {
+    document.documentElement.dataset.theme = next;
+    document.documentElement.dataset.film = film;
+    setTheme(next);
+    try {
+      localStorage.setItem('yuzuctus-film', film);
+    } catch {
+      /* ignore */
+    }
+    updateThemeColor(next);
+    updateThemeToggle(button);
+  };
+
+  if (!document.startViewTransition) {
+    apply();
+    return;
+  }
+
+  const x = origin?.x ?? window.innerWidth - 96;
+  const y = origin?.y ?? 32;
+  const maxRadius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y)
+  );
+
+  const transition = document.startViewTransition(apply);
+  transition.ready
+    .then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${maxRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 560,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          pseudoElement: '::view-transition-new(root)',
+        }
+      );
+    })
+    .catch(() => {
+      /* ignore aborted view transition */
+    });
+}
+
+/**
+ * Wire the theme toggle and shortcut 'N'
  * @param {HTMLElement|null} button
  */
 export function setupThemeToggle(button) {
   if (!button) return;
-  updateThemeColor(getTheme());
+  const current = getEffectiveTheme();
+  document.documentElement.dataset.theme = current;
+  document.documentElement.dataset.film = current === 'light' ? 'positive' : 'negative';
+  updateThemeColor(getTheme() ?? current);
   updateThemeToggle(button);
 
   button.addEventListener('click', () => {
     const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    setTheme(next);
-    updateThemeColor(next);
-    updateThemeToggle(button);
+    const rect = button.getBoundingClientRect();
+    triggerFilmSwitch(next, button, {
+      x: rect.left + rect.width * 0.5,
+      y: rect.top + rect.height * 0.5,
+    });
   });
 
-  // Without an explicit choice, follow the system live
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = e.target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (e.key.toLowerCase() === 'n') {
+      e.preventDefault();
+      const next = getEffectiveTheme() === 'dark' ? 'light' : 'dark';
+      const rect = button.getBoundingClientRect();
+      triggerFilmSwitch(next, button, {
+        x: rect.left + rect.width * 0.5,
+        y: rect.top + rect.height * 0.5,
+      });
+    }
+  });
+
   darkQuery.addEventListener('change', () => updateThemeToggle(button));
 }

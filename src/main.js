@@ -874,6 +874,25 @@ function setupControls() {
     el.innerHTML = icon(el.dataset.icon);
   });
 
+  // Colophon chibi Easter egg (3 poses by KouriHase)
+  const chibiBtn = document.getElementById('chibi-pose-btn');
+  const chibiImg = document.getElementById('chibi-pose-img');
+  if (chibiBtn && chibiImg) {
+    const poses = [
+      '/art/kourihase-chibi-3.png',
+      '/art/kourihase-chibi-1.png',
+      '/art/kourihase-chibi-2.png',
+    ];
+    let poseIdx = 0;
+    chibiBtn.addEventListener('click', () => {
+      poseIdx = (poseIdx + 1) % poses.length;
+      chibiImg.src = poses[poseIdx];
+      chibiImg.style.animation = 'none';
+      void chibiImg.offsetWidth;
+      chibiImg.style.animation = '';
+    });
+  }
+
   initKeyboardShortcuts(handleUndo, handleRedo);
   coarsePointer.addEventListener('change', renderDragHint);
 

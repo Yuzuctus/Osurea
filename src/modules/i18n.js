@@ -38,6 +38,10 @@ function detectLocale() {
     if (stored && SUPPORTED_LOCALES.includes(stored)) {
       return stored;
     }
+    const shared = localStorage.getItem('yuzuctus-language');
+    if (shared && SUPPORTED_LOCALES.includes(shared)) {
+      return shared;
+    }
   } catch {
     // Storage unavailable: fall through to the browser language
   }
@@ -137,6 +141,9 @@ export async function setLocale(locale) {
   translations = await loadLocale(locale);
   try {
     localStorage.setItem(STORAGE_KEYS.LOCALE, locale);
+    if (locale === 'fr' || locale === 'en') {
+      localStorage.setItem('yuzuctus-language', locale);
+    }
   } catch {
     // Storage unavailable: the choice lasts for this visit
   }

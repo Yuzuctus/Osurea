@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-film="negative" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,10 +8,16 @@
       name="description"
       content="Set, compare and save the active area of your osu! tablet, to the tenth of a millimetre."
     />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f3f6ea" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#131c17" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#f5eee0" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0f0e" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Martian+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -25,27 +31,38 @@
     <meta name="twitter:card" content="summary" />
     <link rel="canonical" href="https://osurea.yuzuctus.fr/" />
 
-    <!-- Theme before first paint: an explicit choice wins, else the system decides. -->
+    <!-- Theme before first paint: explicit choice wins, defaults to Mineral Night (negative) -->
     <script src="/theme-init.js"></script>
   </head>
   <body>
     <a class="ag-skip-link" href="#main" data-i18n="app.skip">Skip to content</a>
 
-    <header class="ag-site-header">
-      <div class="ag-container ag-site-header__inner">
-        <a class="ag-wordmark" href="./">Osu!<span class="ag-wordmark__accent">rea</span></a>
-        <nav class="ag-site-header__nav" aria-label="Main" data-i18n-aria-label="nav.label">
+    <header class="yz-topbar">
+      <div class="ag-container yz-topbar__inner">
+        <div class="yz-topbar__brand">
+          <a class="yz-wordmark" href="./">Osu!<span class="yz-wordmark__accent">rea.</span></a>
+          <span class="yz-mono os-header-tag" data-i18n="app.title">Area visualizer</span>
+        </div>
+
+        <nav class="yz-nav" aria-label="Main" data-i18n-aria-label="nav.label">
           <a href="#main" aria-current="true" data-i18n="nav.area">Area</a>
           <a href="#favorites" data-i18n="favorites.title">Favorites</a>
-          <a href="https://github.com/Yuzuctus/Osurea"><span data-i18n="footer.source">Source code</span> ↗</a>
+          <a href="https://skins.yuzuctus.fr/">Skins ↗</a>
+          <a href="https://yuzuctus.fr/">yuzuctus.fr ↗</a>
         </nav>
-        <div class="ag-site-header__controls">
-          <div class="os-langs" role="group" aria-label="Language" data-i18n-aria-label="lang.label">
-            <button class="ag-toggle" type="button" data-locale="en" lang="en" aria-pressed="true">EN</button>
-            <button class="ag-toggle" type="button" data-locale="fr" lang="fr" aria-pressed="false">FR</button>
-            <button class="ag-toggle" type="button" data-locale="es" lang="es" aria-pressed="false">ES</button>
+
+        <div class="yz-topbar__controls">
+          <div class="yz-lang-switch os-langs" role="group" aria-label="Language" data-i18n-aria-label="lang.label">
+            <button class="yz-lang-switch__btn is-active" type="button" data-locale="en" lang="en" aria-pressed="true">EN</button>
+            <span class="yz-lang-switch__sep" aria-hidden="true">/</span>
+            <button class="yz-lang-switch__btn" type="button" data-locale="fr" lang="fr" aria-pressed="false">FR</button>
+            <span class="yz-lang-switch__sep" aria-hidden="true">/</span>
+            <button class="yz-lang-switch__btn" type="button" data-locale="es" lang="es" aria-pressed="false">ES</button>
           </div>
-          <button class="ag-toggle" type="button" id="theme-toggle">Dark</button>
+          <button class="yz-film-switch" type="button" id="theme-toggle">
+            <span class="yz-film-switch__aperture" aria-hidden="true"></span>
+            <span id="theme-toggle-label">Negative</span>
+          </button>
         </div>
       </div>
     </header>
@@ -84,7 +101,7 @@
             </div>
           </div>
 
-          <div id="visualizer" class="os-visualizer"></div>
+          <div id="visualizer" class="os-visualizer yz-viewfinder"></div>
 
           <dl class="os-readout" id="readout"></dl>
         </section>
@@ -240,36 +257,114 @@
 
     </main>
 
-    <footer class="ag-footer">
-      <div class="ag-container ag-footer__inner">
-        <div class="ag-footer__cols">
+    <footer class="ed-colophon">
+      <div class="ag-container">
+        <div class="ed-colophon__grid">
           <div>
-            <p class="ag-kicker" data-i18n="footer.tabletSettings">Tablet settings</p>
-            <ul>
-              <li><a href="https://github.com/OpenTabletDriver/OpenTabletDriver" target="_blank" rel="noopener">OpenTabletDriver ↗</a></li>
-              <li><a href="https://github.com/KaikeGold/OsuAreaCalculator" target="_blank" rel="noopener">Osu Area Calculator ↗</a></li>
-              <li><a href="https://mixmg.github.io/smoothing/smoothing-calculator.html" target="_blank" rel="noopener">Smoothing Calculator ↗</a></li>
-            </ul>
+            <div class="ed-colophon__chibi-row">
+              <button
+                type="button"
+                id="chibi-pose-btn"
+                class="ed-colophon__chibi-btn"
+                aria-label="Change Yuzu chibi pose"
+                title="Change Yuzu chibi pose"
+              >
+                <img
+                  id="chibi-pose-img"
+                  src="/art/kourihase-chibi-3.png"
+                  alt=""
+                  class="ed-colophon__chibi"
+                  loading="lazy"
+                />
+              </button>
+              <a href="./" class="yz-wordmark" style="font-size: 1.85rem">
+                Osu!<span class="yz-wordmark__accent">rea.</span>
+              </a>
+            </div>
+            <p class="ed-colophon__tagline" data-i18n="footer.madeBy">Made for osu! players</p>
           </div>
-          <div>
-            <p class="ag-kicker" data-i18n="footer.spreadsheets">Spreadsheets</p>
-            <ul>
-              <li><a href="https://docs.google.com/spreadsheets/d/125LNzGmidy1gagwYUt12tRhrNdrWFHhWon7kxWY7iWU/edit?gid=854129046#gid=854129046" target="_blank" rel="noopener">Tablet Compatibility Spreadsheet ↗</a></li>
-              <li><a href="https://docs.google.com/spreadsheets/d/1DYVfiSpQqdpa4sWWYUALPmliOIuGyKog7B7LJJdmlhE/edit?gid=2077726645#gid=2077726645" target="_blank" rel="noopener">Area Calculator Spreadsheet ↗</a></li>
-            </ul>
-          </div>
-          <div>
-            <p class="ag-kicker" data-i18n="footer.otherProjects">Other projects</p>
-            <ul>
-              <li><a href="https://skins.yuzuctus.fr/" target="_blank" rel="noopener">osu! Yuzu Skins ↗</a></li>
-              <li><a href="https://yuzuctus.fr/" target="_blank" rel="noopener">yuzuctus.fr ↗</a></li>
-              <li><a href="https://github.com/Yuzuctus/Osurea" target="_blank" rel="noopener"><span data-i18n="footer.source">Source code</span> ↗</a></li>
-            </ul>
+
+          <div class="ed-matrix">
+            <div class="ed-matrix__col">
+              <h3 class="ed-matrix__head" data-i18n="footer.tabletSettings">Tablet settings</h3>
+              <ul>
+                <li>
+                  <a href="https://github.com/OpenTabletDriver/OpenTabletDriver" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">OpenTabletDriver</span>
+                    <span class="ed-matrix__handle">github ↗</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/KaikeGold/OsuAreaCalculator" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">Osu Area Calculator</span>
+                    <span class="ed-matrix__handle">github ↗</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://mixmg.github.io/smoothing/smoothing-calculator.html" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">Smoothing Calculator</span>
+                    <span class="ed-matrix__handle">mixmg ↗</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div class="ed-matrix__col">
+              <h3 class="ed-matrix__head" data-i18n="footer.spreadsheets">Spreadsheets</h3>
+              <ul>
+                <li>
+                  <a href="https://docs.google.com/spreadsheets/d/125LNzGmidy1gagwYUt12tRhrNdrWFHhWon7kxWY7iWU/edit?gid=854129046#gid=854129046" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">Tablet Compatibility</span>
+                    <span class="ed-matrix__handle">sheets ↗</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://docs.google.com/spreadsheets/d/1DYVfiSpQqdpa4sWWYUALPmliOIuGyKog7B7LJJdmlhE/edit?gid=2077726645#gid=2077726645" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">Area Calculator Sheet</span>
+                    <span class="ed-matrix__handle">sheets ↗</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div class="ed-matrix__col">
+              <h3 class="ed-matrix__head" data-i18n="footer.otherProjects">Other projects</h3>
+              <ul>
+                <li>
+                  <a href="https://yuzuctus.fr/" class="ed-matrix__link">
+                    <span class="ed-matrix__label">yuzuctus.fr</span>
+                    <span class="ed-matrix__handle">hub ↗</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://skins.yuzuctus.fr/" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">osu! Yuzu Skins</span>
+                    <span class="ed-matrix__handle">skins.yuzuctus.fr</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://fm.yuzuctus.fr/" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label">FM.Yuzuctus</span>
+                    <span class="ed-matrix__handle">fm.yuzuctus.fr</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/Yuzuctus/Osurea" target="_blank" rel="noopener" class="ed-matrix__link">
+                    <span class="ed-matrix__label" data-i18n="footer.source">Source code</span>
+                    <span class="ed-matrix__handle">@Yuzuctus</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
-        <p class="ag-footer__meta">
-          <span>© 2026 Yuzuctus</span><span data-i18n="footer.madeBy">Made for osu! players</span>
-        </p>
+
+        <div class="ed-colophon__bottom">
+          <span>© 2026 Yuzuctus</span>
+          <div class="ed-colophon__meta-links">
+            <a href="https://yuzuctus.fr/credit" class="ed-link-draw">KouriHase · Mazuko · Joa</a>
+          </div>
+        </div>
       </div>
     </footer>
 

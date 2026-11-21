@@ -1,88 +1,193 @@
 /*
- * Agrume v3 · tokens. Copy verbatim; change here first (see DESIGN.md).
- *
- * One design for every site. Light and dark are written once with
- * light-dark(): a colour token resolves where it is used, against that
- * element's color-scheme. So the page follows [data-theme] or the system, and
- * a section that sets its own color-scheme (.ag-night, .ag-footer,
- * .ag-closing) gets the whole palette of that scheme for free.
- *
- * Palette "Yuzu": the Sapin/mint base of the family, with the yuzu yellow of
- * the handle (Yuzuctus = yuzu + cactus) and of the OC's hair clip as the
- * filled state and the highlight.
- *
- * Contrast (WCAG, minimum on paper / surface / sunken / raised, light · dark):
- *   ink ≥ 13.5 · 11.5   muted ≥ 6.0 · 7.2   faint ≥ 4.5 everywhere
- *   rule-strong ≥ 3.0 · 3.1   focus ≥ 4.6 · 7.8   identity ≥ 5.0 · 9.2
- *   `rule` is a decorative hairline (never the only boundary of a control).
+ * @yuzuctus/design-system · tokens.css (v3 — Desert Mirage & Mineral Night)
+ * Zéro violet IA. Zéro blanc clinique.
+ * - Nuit (par défaut) : Obsidienne-Basalte du désert + Menthe Yuzu, Citron Solaire, Azur Oasis, Corail Cactus.
+ * - Jour : Sable chaud du désert (Yuzu_No_Tempest) + Encre Cactus profonde + Pigments OC francs.
  */
 
-:root {
-  color-scheme: light dark;
-}
-:root[data-theme="light"] {
-  color-scheme: light;
-}
+:root,
+:root[data-film="negative"],
 :root[data-theme="dark"] {
   color-scheme: dark;
+
+  /* ── Nuit du Désert (Obsidienne minérale organique, zéro violet) ── */
+  --yz-ground: #0b0f0e;
+  --yz-surface: #121816;
+  --yz-surface-sunken: #0d1210;
+  --yz-surface-raised: #18201d;
+  --yz-surface-elevated: #17201d;
+  --yz-surface-hover: #1d2824;
+  --yz-inverse-ground: #f5eee0;
+  --yz-inverse-ink: #0d2019;
+
+  /* ── Encre Sable-Craie chaude ── */
+  --yz-ink: #f4efe2;
+  --yz-ink-muted: #adb8b2;
+  --yz-ink-faint: #77857f;
+
+  /* ── Filets architecturaux ── */
+  --yz-rule: #232d29;
+  --yz-rule-strong: #43544d;
+  --yz-rule-subtle: rgba(244, 239, 226, 0.07);
+
+  /* ── Pigments directs de Yuzu (Mazuko + KouriHase) ── */
+  --yz-identity: #5df2bc;
+  --yz-identity-soft: rgba(93, 242, 188, 0.14);
+  --yz-mint-fill: #5df2bc;
+  --yz-mint-ink: #061c14;
+
+  --yz-accent: #f7df4a;
+  --yz-accent-ink: #171403;
+  --yz-accent-text: #f7df4a;
+
+  --yz-secondary: #5ad2f4;
+  --yz-secondary-soft: rgba(90, 210, 244, 0.15);
+
+  --yz-signal: #ff6b8b;
+  --yz-signal-soft: rgba(255, 107, 139, 0.14);
+
+  --yz-sand: #d9b68c;
+
+  --yz-focus: #5df2bc;
+  --yz-shadow-float: 0 28px 70px -20px rgba(0, 0, 0, 0.85);
+
+  /* ── Typographie ── */
+  --yz-font-display: "Bricolage Grotesque", system-ui, -apple-system, sans-serif;
+  --yz-font-sans: "Instrument Sans", system-ui, -apple-system, sans-serif;
+  --yz-font-mono: "Martian Mono", ui-monospace, Consolas, monospace;
+
+  /* ── Échelle ── */
+  --yz-text-2xs: 0.6875rem;
+  --yz-text-xs: 0.75rem;
+  --yz-text-sm: 0.875rem;
+  --yz-text-base: 0.98rem;
+  --yz-text-lg: 1.15rem;
+  --yz-text-xl: 1.45rem;
+  --yz-text-2xl: clamp(1.75rem, 3vw, 2.6rem);
+  --yz-text-3xl: clamp(2.4rem, 5.4vw, 4.6rem);
+
+  /* ── Espacements ── */
+  --yz-space-1: 4px;
+  --yz-space-2: 8px;
+  --yz-space-3: 12px;
+  --yz-space-4: 16px;
+  --yz-space-5: 24px;
+  --yz-space-6: 32px;
+  --yz-space-7: 56px;
+  --yz-space-8: 92px;
+  --yz-space-9: 132px;
+
+  --yz-radius-sharp: 0px;
+  --yz-radius-control: 4px;
+  --yz-radius-card: 0px;
+  --yz-radius-pill: 999px;
+
+  --yz-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --yz-dur-fast: 150ms;
+  --yz-dur: 280ms;
+  --yz-dur-slow: 560ms;
+
+  --yz-container: 108rem;
+  --yz-edge: clamp(1.1rem, 3.2vw, 2.8rem);
 }
 
+/* ═══════════════════════════════════════════════════════════
+ * JOUR DÉSERT — Sable chaud (Yuzu_No_Tempest) & Encre Cactus
+ * ═══════════════════════════════════════════════════════════ */
+:root[data-film="positive"],
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --yz-ground: #f5eee0;
+  --yz-surface: #ebe1cd;
+  --yz-surface-sunken: #e0d4bc;
+  --yz-surface-raised: #fbf7ee;
+  --yz-surface-elevated: #f9f5eb;
+  --yz-surface-hover: #e3d7c0;
+  --yz-inverse-ground: #0d2019;
+  --yz-inverse-ink: #f5eee0;
+
+  --yz-ink: #0d2019;
+  --yz-ink-muted: #394f46;
+  --yz-ink-faint: #5e726a;
+
+  --yz-rule: #d5c8b0;
+  --yz-rule-strong: #173a2e;
+  --yz-rule-subtle: rgba(13, 32, 25, 0.08);
+
+  --yz-identity: #087e55;
+  --yz-identity-soft: rgba(8, 126, 85, 0.13);
+  --yz-mint-fill: #5df2bc;
+  --yz-mint-ink: #061c14;
+
+  --yz-accent: #f3d838;
+  --yz-accent-ink: #171403;
+  --yz-accent-text: #736000;
+
+  --yz-secondary: #0f7ea6;
+  --yz-secondary-soft: rgba(15, 126, 166, 0.13);
+
+  --yz-signal: #d6335d;
+  --yz-signal-soft: rgba(214, 51, 93, 0.13);
+
+  --yz-sand: #c99d6b;
+
+  --yz-focus: #0f7ea6;
+  --yz-shadow-float: 0 22px 54px -18px rgba(13, 32, 25, 0.22);
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * PONT DE COMPATIBILITÉ --ag-* → --yz-*
+ * ═══════════════════════════════════════════════════════════ */
 :root {
-  /* ------------------------------------------------------------ pigments */
-  /* The family's colours. Fills only, always with --ag-on-pigment text. */
-  --ag-pigment-mint: light-dark(#a6e9d1, #72d3a8);
-  --ag-pigment-cyan: light-dark(#9bd8ec, #87cfe6);
-  --ag-pigment-yellow: #f2e285;
-  --ag-pigment-pink: #f6b6c6;
-  --ag-on-pigment: #141c17;
+  --ag-pigment-mint: #5df2bc;
+  --ag-pigment-cyan: #5ad2f4;
+  --ag-pigment-yellow: #f7df4a;
+  --ag-pigment-pink: #ff6b8b;
+  --ag-on-pigment: #061c14;
 
-  /* --------------------------------------------------------------- roles */
-  --ag-paper: light-dark(#f3f6ea, #131c17); /* the ground: "Sapin" */
-  --ag-surface: light-dark(#eaeedd, #1a251e); /* bands, hovered rows */
-  --ag-surface-sunken: light-dark(#e0e5d2, #222d27); /* tracks, wells, empty cells */
-  --ag-surface-raised: light-dark(#fbfcf5, #25312a); /* popovers, panels */
-  --ag-ink: light-dark(#141c17, #eeede4); /* text and major rules */
-  --ag-muted: light-dark(#4b554f, #b9c0b8); /* secondary text */
-  --ag-faint: light-dark(#5f6761, #99a199); /* meta, axes, timestamps */
-  --ag-rule: light-dark(#d2d8c6, #2d3932); /* hairline between comparable rows */
-  --ag-rule-strong: light-dark(#7c8274, #707d74); /* control borders, group separators */
-  --ag-identity: light-dark(#0e6b4c, #86e3b4); /* the family green: names, current place */
-  --ag-accent: light-dark(#f2e285, #f2de6e); /* yuzu: filled state, action sweep */
-  --ag-accent-ink: light-dark(#1d1a05, #171403);
-  --ag-marker: light-dark(#ffe696, #584e0f); /* highlight behind letters */
-  --ag-gold: light-dark(#6b5a00, #ffe696); /* yellow as text (titles) */
-  --ag-rose: light-dark(#9e2452, #f28bab); /* rose as text (titles) */
-  --ag-focus: light-dark(#156b85, #87cfe6);
-  --ag-danger: light-dark(#a52638, #ff9aa9);
-  --ag-on-inverse: var(--ag-paper); /* text on an ink ground */
-  --ag-night: light-dark(#eaeedd, #131c17); /* read inside .ag-night (inverted scheme) */
-  --ag-deep: #0c140f; /* footer ground, both themes */
-  --ag-shadow-overlay: 0 1px 0 light-dark(rgb(20 28 23 / 0.05), rgb(238 237 228 / 0.06)),
-    0 14px 36px -10px light-dark(rgb(20 28 23 / 0.3), rgb(0 0 0 / 0.7));
+  --ag-paper: var(--yz-ground);
+  --ag-surface: var(--yz-surface);
+  --ag-surface-sunken: var(--yz-surface-sunken);
+  --ag-surface-raised: var(--yz-surface-raised);
+  --ag-ink: var(--yz-ink);
+  --ag-muted: var(--yz-ink-muted);
+  --ag-faint: var(--yz-ink-faint);
+  --ag-rule: var(--yz-rule);
+  --ag-rule-strong: var(--yz-rule-strong);
+  --ag-identity: var(--yz-identity);
+  --ag-accent: var(--yz-accent);
+  --ag-accent-ink: var(--yz-accent-ink);
+  --ag-marker: var(--yz-identity-soft);
+  --ag-gold: var(--yz-accent-text);
+  --ag-rose: var(--yz-signal);
+  --ag-focus: var(--yz-focus);
+  --ag-danger: var(--yz-signal);
+  --ag-on-inverse: var(--yz-ground);
+  --ag-night: var(--yz-surface);
+  --ag-deep: var(--yz-surface);
+  --ag-shadow-overlay: var(--yz-shadow-float);
 
-  /* Paper grain: one noise tile used as a mask; the colour carries opacity. */
-  --ag-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.4 1.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  --ag-grain-color: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.03));
+  --ag-grain: none;
+  --ag-grain-color: transparent;
 
-  /* ---------------------------------------------------------------- type */
-  --ag-font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --ag-font-title: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", sans-serif;
-  --ag-font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --ag-font-sans: var(--yz-font-sans);
+  --ag-font-title: var(--yz-font-display);
+  --ag-font-mono: var(--yz-font-mono);
 
-  --ag-text-2xs: 0.6875rem; /* 11: mono labels */
-  --ag-text-xs: 0.75rem; /* 12: meta */
-  --ag-text-sm: 0.8125rem; /* 13: dense UI */
-  --ag-text-md: 0.9375rem; /* 15: interface body */
-  --ag-text-base: 1rem; /* 16: reading body */
-  --ag-text-lg: 1.125rem; /* 18: leads */
-  --ag-text-xl: 1.375rem; /* 22 */
-  --ag-text-2xl: 1.75rem; /* 28: section titles */
-  --ag-text-3xl: 2.25rem; /* 36 */
-  --ag-title-lg: clamp(1.75rem, 3vw, 2.5rem); /* list titles, bands */
-  --ag-title-xl: clamp(2.75rem, 6vw, 5.5rem); /* chapter, feature, night */
-  --ag-title-hero: clamp(4rem, 9.5vw, 9rem); /* one per page */
+  --ag-text-2xs: 0.6875rem;
+  --ag-text-xs: 0.75rem;
+  --ag-text-sm: 0.8125rem;
+  --ag-text-md: 0.9375rem;
+  --ag-text-base: 0.98rem;
+  --ag-text-lg: 1.125rem;
+  --ag-text-xl: 1.375rem;
+  --ag-text-2xl: 1.75rem;
+  --ag-text-3xl: 2.25rem;
+  --ag-title-lg: clamp(1.75rem, 3vw, 2.5rem);
+  --ag-title-xl: clamp(2.4rem, 5vw, 4.2rem);
+  --ag-title-hero: clamp(4rem, 9.5vw, 9rem);
 
-  /* ------------------------------------------------------------- spacing */
   --ag-space-1: 4px;
   --ag-space-2: 8px;
   --ag-space-3: 12px;
@@ -95,21 +200,22 @@
   --ag-space-10: 64px;
   --ag-space-11: 96px;
 
-  /* ------------------------------------------------------- shape, motion */
-  --ag-border-hair: 1px; /* between items */
-  --ag-border-rule: 2px; /* opens a list or a section */
-  --ag-border-mark: 3px; /* current item */
-  --ag-radius-art: 2px; /* artwork only */
-  --ag-radius-round: 999px; /* dots only */
-  --ag-ease: cubic-bezier(0.2, 0, 0, 1);
-  --ag-dur-fast: 120ms;
-  --ag-dur: 180ms;
-  --ag-dur-slow: 280ms;
+  --ag-border-hair: 1px;
+  --ag-border-rule: 2px;
+  --ag-border-mark: 3px;
+  --ag-radius-art: 0px;
+  --ag-radius-person: 50%;
+  --ag-radius-round: 999px;
+  --ag-ease: var(--yz-ease);
+  --ag-ease-out: var(--yz-ease);
+  --ag-dur-fast: 140ms;
+  --ag-dur: 220ms;
+  --ag-dur-slow: 320ms;
+  --ag-dur-reveal: 560ms;
+  --ag-stagger: 45ms;
 
-  /* -------------------------------------------------------------- layout */
-  /* Breakpoints (media queries cannot read variables): 620 · 760 · 960. */
-  --ag-container: 72.5rem; /* 1160 px column */
-  --ag-edge: clamp(1rem, 4vw, 2.5rem);
+  --ag-container: var(--yz-container);
+  --ag-edge: var(--yz-edge);
   --ag-control-h: 36px;
-  --ag-target: 44px; /* minimum touch target */
+  --ag-target: 42px;
 }

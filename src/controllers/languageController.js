@@ -12,7 +12,11 @@ import { setLocale, getLocale } from '../modules/i18n.js';
  */
 export function updateLanguageToggles(buttons) {
   const current = getLocale();
-  buttons.forEach(btn => btn.setAttribute('aria-pressed', String(btn.dataset.locale === current)));
+  buttons.forEach(btn => {
+    const active = btn.dataset.locale === current;
+    btn.setAttribute('aria-pressed', String(active));
+    btn.classList.toggle('is-active', active);
+  });
 }
 
 /**

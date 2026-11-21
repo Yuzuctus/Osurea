@@ -1,8 +1,16 @@
-// Applies an explicit theme choice before the first paint (no flash).
-// Without a stored choice, the system preference decides (Agrume convention).
+// Applies the Yuzuctus film mode (negative / positive) and theme (dark / light) before first paint.
 try {
+  var film = localStorage.getItem('yuzuctus-film');
   var theme = localStorage.getItem('osurea:theme');
-  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+  var isLight = false;
+  if (film === 'positive' || film === 'negative') {
+    isLight = film === 'positive';
+  } else if (theme === 'light' || theme === 'dark') {
+    isLight = theme === 'light';
+  }
+  document.documentElement.dataset.film = isLight ? 'positive' : 'negative';
+  document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
 } catch (e) {
-  /* storage unavailable: follow the system */
+  document.documentElement.dataset.film = 'negative';
+  document.documentElement.dataset.theme = 'dark';
 }
