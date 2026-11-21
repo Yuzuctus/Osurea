@@ -14,6 +14,11 @@
   --os-zone-b: #0f7ea6;
 }
 
+html {
+  scrollbar-color: var(--yz-rule-strong) var(--yz-ground);
+  scrollbar-width: thin;
+}
+
 body {
   --ag-container: 112rem;
   background:
@@ -675,6 +680,7 @@ body::after {
 .os-config .ag-field,
 .os-dialog .ag-field {
   gap: 5px;
+  align-content: start;
 }
 
 .os-config .ag-field__label {
@@ -751,6 +757,7 @@ body::after {
 .os-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 10px;
 }
 
@@ -827,10 +834,12 @@ body::after {
 }
 
 .os-ratios .ag-segmented__item {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 34px;
+  padding: 0 6px;
   font-family: var(--yz-font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
 }
 
 .os-ratio__custom {
